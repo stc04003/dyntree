@@ -1,0 +1,11 @@
+.Rhistory
+.RData
+*.RData
+*.o
+*.so
+*~
+
+check_all.sh
+check_rhub.R
+ex_all.R
+simulation/
