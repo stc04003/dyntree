@@ -1,9 +1,9 @@
 Package: dynTree
-Title: Dynamic risk prediction with random forests
+Title: Dynamic risk prediction with survival tree ensembles
 Version: 0.0.1
 Authors@R: c(person("Yifei", "Sun", email = "ys3072@cumc.columbia.edu", role = "aut"),
 	   person("Sy Han", "Chiou", email = "schiou@utdallas.edu", role = c("aut", "cre")))
-Description: Something about landmark
+Description: A unified framework for dynamic landmark prediction using survival tree ensembles.
 Depends: R (>= 3.5.0)
 License: GPL (>= 3)
 Encoding: UTF-8
