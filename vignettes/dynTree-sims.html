@@ -312,32 +312,32 @@ MathJax.Hub.Config({
 +     z &lt;- mvrnorm(n, rep(1, 10), .5^outer(1:10, 1:10, function(x, y) abs(x - y)))
 +     a &lt;- matrix(runif(10 * n, -1, 1), n)
 +     b &lt;- matrix(runif(10 * n), n)
-+     out &lt;- data.frame(id = 1:n,
-+                       Time = sapply(1:n, function(x) getY(a[12:16,], b[22:26,], z[6:10,], runif(1))),
-+                       z = z, a = a, b = b)
++     y &lt;- sapply(1:n, function(x) getY(a[x, 1:5], b[x, 1:5], z[x, 5:9], runif(1)))
++     out &lt;- data.frame(id = 1:n, Time = y, z = z, a = a, b = b)
 +     return(out)
 + }
-&gt; set.seed(27); dat &lt;- getDat(200)
+&gt; set.seed(117); dat &lt;- getDat(400)
 &gt; dim(dat); names(dat)</code></pre>
-<pre><code>[1] 200  32</code></pre>
+<pre><code>[1] 400  32</code></pre>
 <pre><code> [1] &quot;id&quot;   &quot;Time&quot; &quot;z.1&quot;  &quot;z.2&quot;  &quot;z.3&quot;  &quot;z.4&quot;  &quot;z.5&quot;  &quot;z.6&quot;  &quot;z.7&quot;  &quot;z.8&quot; 
 [11] &quot;z.9&quot;  &quot;z.10&quot; &quot;a.1&quot;  &quot;a.2&quot;  &quot;a.3&quot;  &quot;a.4&quot;  &quot;a.5&quot;  &quot;a.6&quot;  &quot;a.7&quot;  &quot;a.8&quot; 
 [21] &quot;a.9&quot;  &quot;a.10&quot; &quot;b.1&quot;  &quot;b.2&quot;  &quot;b.3&quot;  &quot;b.4&quot;  &quot;b.5&quot;  &quot;b.6&quot;  &quot;b.7&quot;  &quot;b.8&quot; 
 [31] &quot;b.9&quot;  &quot;b.10&quot;</code></pre>
-<p>Each row in <code>dat</code> represents information for one subject. The subject identifications are stored in column <code>id</code> and the failure times are stored in column <code>Time</code>. Time independent predictor are stored in columns <code>z.1</code> through <code>z.10</code>. The longitudinal predictors measured at landmark times <span class="math inline">\(t_k\)</span> can be calculated based on <code>a.1</code><span class="math inline">\(\ldots\)</span><code>a.10</code> and <code>b.1</code><span class="math inline">\(\ldots\)</span><code>b.10</code> given <span class="math inline">\(t_k\)</span>. Suppose the landmark times considered in this simulation study are <span class="math inline">\(t_1 = 1\)</span> and <span class="math inline">\(t_2 = 2\)</span>. The following code and figure depict the first three observed failure times in <code>dat</code>.</p>
+<p>Each row in <code>dat</code> represents information for one subject. The subject identifications are stored in column <code>id</code> and the failure times are stored in column <code>Time</code>. Time independent predictor are stored in columns <code>z.1</code> through <code>z.10</code>. The longitudinal predictors measured at landmark times <span class="math inline">\(t_k\)</span> can be calculated based on <code>a.1</code><span class="math inline">\(\ldots\)</span><code>a.10</code> and <code>b.1</code><span class="math inline">\(\ldots\)</span><code>b.10</code> given <span class="math inline">\(t_k\)</span>. Suppose the landmark times considered in this simulation study are <span class="math inline">\(t_1 = 1\)</span> and <span class="math inline">\(t_2 = 2\)</span>. The following code and figure depict the first four observed failure times in <code>dat</code>.</p>
 <pre class="r"><code>&gt; head(dat$Time)</code></pre>
-<pre><code>[1] 1.089075 1.192937 3.244541 1.078180 1.405394 1.285582</code></pre>
+<pre><code>[1] 1.276556 1.630298 2.028023 3.527834 1.040375 2.303940</code></pre>
 <div class="figure">
-<img src="data:image/png;base64,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" alt="Illustration of fixed landmark time." />
+<img src="data:image/png;base64,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" alt="Illustration of fixed landmark time." />
 <p class="caption">Illustration of fixed landmark time.</p>
 </div>
-<p>At <span class="math inline">\(t_1 = 1\)</span>, all available predictor information (colored in green) including <span class="math inline">\({{\mathbf Z}}\)</span> and <span class="math inline">\({{\mathbf W}}(t_1)\)</span> are used to predict the event risk <span class="math inline">\(P(T\ge t_1 + t|T\ge t_1, {{\mathbf W}}(t_1), {{\mathbf Z}})\)</span>. However, subject <code>id = 1</code> experienced an event (at time 1.089) before the first landmark time (<span class="math inline">\(t_1 = 1\)</span>) and is excluded in the landmark analysis. On the other hand, subject <code>id = 3</code> experienced an event (at time 3.245) after the second landmark time (<span class="math inline">\(t_2 = 2\)</span>) and is censored at <span class="math inline">\(T = 2\)</span> when included in the study.</p>
+<p>At <span class="math inline">\(t_1 = 1\)</span>, all available predictor information (colored in green) including <span class="math inline">\({{\mathbf Z}}\)</span> and <span class="math inline">\({{\mathbf W}}(t_1)\)</span> are used to predict the event risk <span class="math inline">\(P(T\ge t_1 + t|T\ge t_1, {{\mathbf W}}(t_1), {{\mathbf Z}})\)</span>. In the simulated data, all of the first four failure times are greater than <span class="math inline">\(t_1\)</span> so are included in the landmark analysis when landmark time is <span class="math inline">\(t_1\)</span>. However, subjects <code>id = 3</code> and <code>id = 4</code> experienced an event (at time 2.028 and 3.528, respectively) after the second landmark time (<span class="math inline">\(t_2 = 2\)</span>) so the corresponding failure times are censored at <span class="math inline">\(t_2 = 2\)</span> when included in the analysis.</p>
+<p>On the other hand, subjects <code>id = 1</code> and <code>id = 2</code> are excluded in the landmark model when the landmark is <span class="math inline">\(t_2\)</span> as their failure times are less than <span class="math inline">\(t_2\)</span>. At <span class="math inline">\(t_2 = 2\)</span>, additional longitudinal predictors become available for subjects <code>id = 3</code> and <code>id = 4</code>, e.g., <span class="math inline">\({{\mathbf W}}_3(t_2)\)</span> and <span class="math inline">\({{\mathbf W}}_4(t_2)\)</span>. Similar to the scenario when landmark is at <span class="math inline">\(t_1\)</span>, the failure time for subject <code>id = 4</code> is censored at <span class="math inline">\(t_3 = 3\)</span>.</p>
 <p>The following code modifies the <code>getDat()</code> function to accomdiate the administrative censoring induced by <span class="math inline">\(t_{k + 1}\)</span> and an additional independent right-censoring.</p>
 <pre class="r"><code>&gt; getDat &lt;- function(n, cr, land) {
 +     z &lt;- mvrnorm(n, rep(1, 10), .5^outer(1:10, 1:10, function(x, y) abs(x - y)))
 +     a &lt;- matrix(runif(10 * n, -1, 1), n)
 +     b &lt;- matrix(runif(10 * n), n)
-+     y &lt;- sapply(1:n, function(x) getY(a[12:16,], b[22:26,], z[6:10,], runif(1)))
++     y &lt;- sapply(1:n, function(x) getY(a[x, 1:5], b[x, 1:5], z[x, 5:9], runif(1)))
 +     if (land == 1) {
 +         if (cr == .2) cc &lt;- runif(n, 0, 7.51)
 +         if (cr == .4) cc &lt;- runif(n, 0, 3.91)
@@ -346,20 +346,23 @@ MathJax.Hub.Config({
 +         if (cr == .2) cc &lt;- runif(n, 0, 11.35)
 +         if (cr == .4) cc &lt;- runif(n, 0, 5.68)   
 +     }
-+     out &lt;- data.frame(id = 1:n, Time = pmin(y, cc, 2), delta = 1 * (y &lt;= pmin(cc, 2)),
++     out &lt;- data.frame(id = 1:n, Time = pmin(y, cc, land + 1), delta = 1 * (y &lt;= pmin(cc, 2)),
 +                       z = z, w1 = a * pweibull(b, 2))
 +     if (land == 2) out$w2 &lt;- a * pweibull(b * 2, 2) / 2
 +     out$a &lt;- a
 +     out$b &lt;- b
 +     return(subset(out, Time &gt; land))
 + }
-&gt; set.seed(27); dat &lt;- getDat(400, .2, 1)
-&gt; names(dat)</code></pre>
+&gt; set.seed(117); dat1 &lt;- getDat(400, .2, 1)
+&gt; set.seed(117); dat2 &lt;- getDat(400, .2, 2)
+&gt; names(dat1)</code></pre>
 <pre><code> [1] &quot;id&quot;    &quot;Time&quot;  &quot;delta&quot; &quot;z.1&quot;   &quot;z.2&quot;   &quot;z.3&quot;   &quot;z.4&quot;   &quot;z.5&quot;   &quot;z.6&quot;  
 [10] &quot;z.7&quot;   &quot;z.8&quot;   &quot;z.9&quot;   &quot;z.10&quot;  &quot;w1.1&quot;  &quot;w1.2&quot;  &quot;w1.3&quot;  &quot;w1.4&quot;  &quot;w1.5&quot; 
 [19] &quot;w1.6&quot;  &quot;w1.7&quot;  &quot;w1.8&quot;  &quot;w1.9&quot;  &quot;w1.10&quot; &quot;a&quot;     &quot;b&quot;    </code></pre>
-<pre class="r"><code>&gt; head(dat$Time)</code></pre>
-<pre><code>[1] 2.000000 2.000000 1.788517 1.486629 2.000000 1.187513</code></pre>
+<pre class="r"><code>&gt; head(dat1$Time)</code></pre>
+<pre><code>[1] 1.276556 1.630298 2.000000 2.000000 1.040375 2.000000</code></pre>
+<pre class="r"><code>&gt; head(dat2$Time)</code></pre>
+<pre><code>[1] 2.028023 3.000000 2.303940 3.000000 2.159132 2.240095</code></pre>
 <p>The modified <code>getDat()</code> takes three arguments; <code>n</code> for sample size, <code>cr</code> for censoring rate, and <code>land</code> for the fixed landmark time. The available values for <code>cr</code> is 0.2 and 0.4 while the available values for <code>land</code> are 1 and 2. The censoring time was generated from a uniform distribution on <span class="math inline">\([0, c]\)</span>, where <span class="math inline">\(c\)</span> was chosen to achieve either a 20% or 40% rate of censoring, i.e., the average proportion of failure times censored by whether the administrative censoring of <span class="math inline">\(t_k + 1\)</span> or random censoring.</p>
 <p>The <code>getDat()</code> returns a <code>data.frame</code> consists of subjects with an observed survival time greater than the landmark time. The observed survival time is stored in column <code>Time</code> with the corresponding censoring indicator in column <code>delta</code> (<code>delta = 1</code> if uncensored, <code>delta = 0</code> otherwise). Time-independent predictors are stored in columns <code>z.1</code> through <code>z.10</code> and longitudinal predictors measured at <span class="math inline">\(t_1\)</span> is stored in columns <code>w1.1</code> through <code>w1.10</code>. When the landmark is <span class="math inline">\(t_2 = 2\)</span>, longitudinal predictors measured at <span class="math inline">\(t_2\)</span> is stored in columns <code>w2.1</code> through <code>w2.10</code>. Although not used in fitting the landmark model, variables <code>a</code> and <code>b</code> will be used to calculate the true survival probability to assess the performance of the proposed landmark model.</p>
 </div>
@@ -399,7 +402,7 @@ NULL</code></pre>
 <div id="fitting-dyntree" class="section level2">
 <h2>Fitting <code>dynTree</code></h2>
 <p>Since the argument <code>numFold</code> controls the number of cross-validation in pruning, the fully grown (un-pruned) survival tree can be constructed as follow:</p>
-<pre class="r"><code>&gt; fit1 &lt;- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat, select = -c(a, b)), 
+<pre class="r"><code>&gt; fit1 &lt;- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
 +                 ensemble = FALSE, trans = TRUE, control = list(numFold = 0))
 &gt; fit1</code></pre>
 <pre><code> Survival tree
@@ -407,39 +410,41 @@ NULL</code></pre>
  node), split
    * denotes terminal node
   
-Root                                                 
- ¦--2) z.5 &lt;= 0.62189                                
- ¦   ¦--4) w1.8 &lt;= 0.079602*                         
- ¦   °--5) w1.8 &gt; 0.079602                           
- ¦       ¦--10) w1.5 &lt;= 0.92537                      
- ¦       ¦   ¦--20) z.8 &lt;= 0.80100                   
- ¦       ¦   ¦   ¦--40) id &lt;= 0.74627                
- ¦       ¦   ¦   ¦   ¦--80) w1.4 &lt;= 0.68159          
- ¦       ¦   ¦   ¦   ¦   ¦--160) z.2 &lt;= 0.30348*     
- ¦       ¦   ¦   ¦   ¦   °--161) z.2 &gt; 0.30348       
- ¦       ¦   ¦   ¦   ¦       ¦--322) w1.8 &lt;= 0.52736*
- ¦       ¦   ¦   ¦   ¦       °--323) w1.8 &gt; 0.52736* 
- ¦       ¦   ¦   ¦   °--81) w1.4 &gt; 0.68159           
- ¦       ¦   ¦   ¦       ¦--162) z.9 &lt;= 0.49751*     
- ¦       ¦   ¦   ¦       °--163) z.9 &gt; 0.49751*      
- ¦       ¦   ¦   °--41) id &gt; 0.74627                 
- ¦       ¦   ¦       ¦--82) w1.6 &lt;= 0.50249*         
- ¦       ¦   ¦       °--83) w1.6 &gt; 0.50249*          
- ¦       ¦   °--21) z.8 &gt; 0.80100*                   
- ¦       °--11) w1.5 &gt; 0.92537*                      
- °--3) z.5 &gt; 0.62189                                 
-     ¦--6) w1.8 &lt;= 0.86567                           
-     ¦   ¦--12) w1.5 &lt;= 0.59701                      
-     ¦   ¦   ¦--24) w1.7 &lt;= 0.72139                  
-     ¦   ¦   ¦   ¦--48) z.7 &lt;= 0.62189*              
-     ¦   ¦   ¦   °--49) z.7 &gt; 0.62189*               
-     ¦   ¦   °--25) w1.7 &gt; 0.72139*                  
-     ¦   °--13) w1.5 &gt; 0.59701                       
-     ¦       ¦--26) z.8 &lt;= 0.72637*                  
-     ¦       °--27) z.8 &gt; 0.72637*                   
-     °--7) w1.8 &gt; 0.86567*                           </code></pre>
+Root                                            
+ ¦--2) z.7 &lt;= 0.74627                           
+ ¦   ¦--4) z.10 &lt;= 0.56219                      
+ ¦   ¦   ¦--8) z.4 &lt;= 0.86070                   
+ ¦   ¦   ¦   ¦--16) w1.2 &lt;= 0.77612             
+ ¦   ¦   ¦   ¦   ¦--32) z.1 &lt;= 0.60697          
+ ¦   ¦   ¦   ¦   ¦   ¦--64) z.1 &lt;= 0.39801      
+ ¦   ¦   ¦   ¦   ¦   ¦   ¦--128) z.7 &lt;= 0.49751*
+ ¦   ¦   ¦   ¦   ¦   ¦   °--129) z.7 &gt; 0.49751* 
+ ¦   ¦   ¦   ¦   ¦   °--65) z.1 &gt; 0.39801*      
+ ¦   ¦   ¦   ¦   °--33) z.1 &gt; 0.60697           
+ ¦   ¦   ¦   ¦       ¦--66) z.2 &lt;= 0.59701*     
+ ¦   ¦   ¦   ¦       °--67) z.2 &gt; 0.59701*      
+ ¦   ¦   ¦   °--17) w1.2 &gt; 0.77612*             
+ ¦   ¦   °--9) z.4 &gt; 0.86070*                   
+ ¦   °--5) z.10 &gt; 0.56219                       
+ ¦       ¦--10) w1.9 &lt;= 0.67662                 
+ ¦       ¦   ¦--20) w1.9 &lt;= 0.14428*            
+ ¦       ¦   °--21) w1.9 &gt; 0.14428              
+ ¦       ¦       ¦--42) z.4 &lt;= 0.42786*         
+ ¦       ¦       °--43) z.4 &gt; 0.42786*          
+ ¦       °--11) w1.9 &gt; 0.67662                  
+ ¦           ¦--22) w1.1 &lt;= 0.52239*            
+ ¦           °--23) w1.1 &gt; 0.52239*             
+ °--3) z.7 &gt; 0.74627                            
+     ¦--6) z.9 &lt;= 0.30348*                      
+     °--7) z.9 &gt; 0.30348                        
+         ¦--14) z.2 &lt;= 0.19900*                 
+         °--15) z.2 &gt; 0.19900                   
+             ¦--30) z.1 &lt;= 0.42786*             
+             °--31) z.1 &gt; 0.42786               
+                 ¦--62) z.3 &lt;= 0.63682*         
+                 °--63) z.3 &gt; 0.63682*          </code></pre>
 <p>A pruned tree can be constructed as follow:</p>
-<pre class="r"><code>&gt; fit2 &lt;- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat, select = -c(a, b)), 
+<pre class="r"><code>&gt; fit2 &lt;- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
 +                 ensemble = FALSE, trans = TRUE)
 &gt; fit2</code></pre>
 <pre><code> Survival tree
@@ -447,42 +452,36 @@ Root
  node), split
    * denotes terminal node
   
-Root                                        
- ¦--2) z.5 &lt;= 0.62189                       
- ¦   ¦--4) w1.8 &lt;= 0.079602*                
- ¦   °--5) w1.8 &gt; 0.079602                  
- ¦       ¦--10) w1.5 &lt;= 0.92537             
- ¦       ¦   ¦--20) z.8 &lt;= 0.80100          
- ¦       ¦   ¦   ¦--40) id &lt;= 0.74627       
- ¦       ¦   ¦   ¦   ¦--80) w1.4 &lt;= 0.68159*
- ¦       ¦   ¦   ¦   °--81) w1.4 &gt; 0.68159* 
- ¦       ¦   ¦   °--41) id &gt; 0.74627        
- ¦       ¦   ¦       ¦--82) w1.6 &lt;= 0.50249*
- ¦       ¦   ¦       °--83) w1.6 &gt; 0.50249* 
- ¦       ¦   °--21) z.8 &gt; 0.80100*          
- ¦       °--11) w1.5 &gt; 0.92537*             
- °--3) z.5 &gt; 0.62189                        
-     ¦--6) w1.8 &lt;= 0.86567                  
-     ¦   ¦--12) w1.5 &lt;= 0.59701             
-     ¦   ¦   ¦--24) w1.7 &lt;= 0.72139         
-     ¦   ¦   ¦   ¦--48) z.7 &lt;= 0.62189*     
-     ¦   ¦   ¦   °--49) z.7 &gt; 0.62189*      
-     ¦   ¦   °--25) w1.7 &gt; 0.72139*         
-     ¦   °--13) w1.5 &gt; 0.59701              
-     ¦       ¦--26) z.8 &lt;= 0.72637*         
-     ¦       °--27) z.8 &gt; 0.72637*          
-     °--7) w1.8 &gt; 0.86567*                  </code></pre>
+Root                                
+ ¦--2) z.7 &lt;= 0.74627               
+ ¦   ¦--4) z.10 &lt;= 0.56219          
+ ¦   ¦   ¦--8) z.4 &lt;= 0.86070       
+ ¦   ¦   ¦   ¦--16) w1.2 &lt;= 0.77612*
+ ¦   ¦   ¦   °--17) w1.2 &gt; 0.77612* 
+ ¦   ¦   °--9) z.4 &gt; 0.86070*       
+ ¦   °--5) z.10 &gt; 0.56219           
+ ¦       ¦--10) w1.9 &lt;= 0.67662     
+ ¦       ¦   ¦--20) w1.9 &lt;= 0.14428*
+ ¦       ¦   °--21) w1.9 &gt; 0.14428* 
+ ¦       °--11) w1.9 &gt; 0.67662      
+ ¦           ¦--22) w1.1 &lt;= 0.52239*
+ ¦           °--23) w1.1 &gt; 0.52239* 
+ °--3) z.7 &gt; 0.74627                
+     ¦--6) z.9 &lt;= 0.30348*          
+     °--7) z.9 &gt; 0.30348            
+         ¦--14) z.2 &lt;= 0.19900*     
+         °--15) z.2 &gt; 0.19900*      </code></pre>
 <p>Lastly, turning <code>ensemble = TRUE</code> applies the ensemble method:</p>
-<pre class="r"><code>&gt; fit3 &lt;- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat, select = -c(a, b)), 
+<pre class="r"><code>&gt; fit3 &lt;- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
 +                 ensemble = TRUE, trans = TRUE)
 &gt; fit3</code></pre>
 <pre><code>Ensembles
 
 Call:
- dynTree(formula = Surv(Time, delta) ~ ., data = subset(dat, select = -c(a,      b)), id = id, ensemble = TRUE, trans = TRUE) 
+ dynTree(formula = Surv(Time, delta) ~ ., data = subset(dat1,      select = -c(a, b)), id = id, ensemble = TRUE, trans = TRUE) 
 
 Sample size:                                        
-Number of independent variables:                    337 
+Number of independent variables:                    325 
 Number of trees:                                    500 
 Split rule:                                         
 Number of variables tried at each split:            5 
@@ -495,9 +494,33 @@ Min. number of baseline obs. in a terminal node:    15 </code></pre>
 <p>To assess the performance of the proposed methods, we independently generate a test data with <code>n = 500</code> under the same setting.</p>
 <pre class="r"><code>&gt; set.seed(1); datTest &lt;- getDat(500, .2, 1)</code></pre>
 <p>The predicted probability can be obtained by applying the generic function <code>predict()</code> to each subjects in the test data.</p>
-<pre class="r"><code>&gt; pred1 &lt;- predict(fit1, datTest)
-&gt; pred2 &lt;- predict(fit2, datTest)
-&gt; pred3 &lt;- predict(fit3, datTest)</code></pre>
+<pre class="r"><code>&gt; system.time(pred1 &lt;- predict(fit1, datTest))</code></pre>
+<pre><code>   user  system elapsed 
+  0.048   0.000   0.052 </code></pre>
+<pre class="r"><code>&gt; system.time(pred2 &lt;- predict(fit2, datTest)) </code></pre>
+<pre><code>   user  system elapsed 
+  0.048   0.000   0.045 </code></pre>
+<pre class="r"><code>&gt; system.time(pred3 &lt;- predict(fit3, datTest))</code></pre>
+<pre><code>   user  system elapsed 
+  0.088   0.000   0.090 </code></pre>
+<p>We use the following codes to calculate the true survival probability for each subject in the test data.</p>
+<pre class="r"><code>&gt; trSiFun &lt;- sapply(1:nrow(datTest), function(s) {
++     tmp = datTest[s,]
++     g0 = seq(1e-5, 2, 1e-2)
++     a0 = as.numeric(tmp$a[1:5])
++     b0 = as.numeric(tmp$b[1:5])
++     z0 = as.numeric(tmp$z[1:5])
++     tmpS = unlist(sapply(g0, function(tt) exp(-Hz(tt, a0, b0, z0))))
++     return(function(t2)
++         stepfun(x = g0, y = c(1, tmpS))(t2 + 1) / stepfun(x = g0, y = c(1, tmpS))(1))})</code></pre>
+<p>The error square is</p>
+<pre class="r"><code>&gt; t0 &lt;- seq(0, quantile(datTest$Time - 1, .9), length.out = 50)
+&gt; err1 &lt;- sapply(1:length(pred1), function(x) (pred1[[x]](t0) - trSiFun[[x]](t0))^2)
+&gt; err2 &lt;- sapply(1:length(pred1), function(x) (pred2[[x]](t0) - trSiFun[[x]](t0))^2)
+&gt; err3 &lt;- sapply(1:length(pred1), function(x) (pred3[[x]](t0) - trSiFun[[x]](t0))^2)
+&gt; mean(err1)
+&gt; mean(err2)
+&gt; mean(err3)</code></pre>
 </div>
 <div id="reference" class="section level2 unnumbered">
 <h2>Reference</h2>

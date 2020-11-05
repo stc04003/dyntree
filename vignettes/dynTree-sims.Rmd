@@ -95,12 +95,11 @@ getDat <- function(n) {
     z <- mvrnorm(n, rep(1, 10), .5^outer(1:10, 1:10, function(x, y) abs(x - y)))
     a <- matrix(runif(10 * n, -1, 1), n)
     b <- matrix(runif(10 * n), n)
-    out <- data.frame(id = 1:n,
-                      Time = sapply(1:n, function(x) getY(a[12:16,], b[22:26,], z[6:10,], runif(1))),
-                      z = z, a = a, b = b)
+    y <- sapply(1:n, function(x) getY(a[x, 1:5], b[x, 1:5], z[x, 5:9], runif(1)))
+    out <- data.frame(id = 1:n, Time = y, z = z, a = a, b = b)
     return(out)
 }
-set.seed(27); dat <- getDat(200)
+set.seed(117); dat <- getDat(400)
 dim(dat); names(dat)
 ```
 Each row in `dat` represents information for one subject.
@@ -109,19 +108,28 @@ Time independent predictor are stored in columns `z.1` through `z.10`.
 The longitudinal predictors measured at landmark times $t_k$ can be calculated 
 based on `a.1`$\ldots$`a.10` and `b.1`$\ldots$`b.10` given $t_k$.
 Suppose the landmark times considered in this simulation study are $t_1 = 1$ and $t_2 = 2$.
-The following code and figure depict the first three observed failure times in `dat`.
+The following code and figure depict the first four observed failure times in `dat`.
 ```{R}
 head(dat$Time)
 ```
 
-![Illustration of fixed landmark time.](long.png)
+![](long.png)
 
 At $t_1 = 1$, all available predictor information (colored in green)
 including $\bmZ$ and $\bmW(t_1)$ are used to predict the event risk $P(T\ge t_1 + t|T\ge t_1, \bmW(t_1), \bmZ)$.
-However, subject `id = 1` experienced an event (at time `r round(dat$Time[1], 3)`) 
-before the first landmark time ($t_1 = 1$) and is excluded in the landmark analysis. 
-On the other hand, subject `id = 3` experienced an event (at time `r round(dat$Time[3], 3)`) 
-after the second landmark time ($t_2 = 2$) and is censored at $T = 2$ when included in the study.
+In the simulated data, all of the first four failure times are greater than $t_1$ so are included in the 
+landmark analysis when landmark time is $t_1$.
+However, subjects `id = 3` and `id = 4` experienced events
+(at time `r round(dat$Time[3], 3)` and `r round(dat$Time[4], 3)`, respectively) 
+after the second landmark time ($t_2 = 2$) so the corresponding failure times are censored at $t_2 = 2$ 
+when included in the analysis.
+
+
+On the other hand, subjects `id = 1` and `id = 2` are excluded in the landmark model when the landmark is $t_2$ 
+as their failure times are less than $t_2$. 
+At $t_2 = 2$, additional longitudinal predictors become available for subjects `id = 3` and `id = 4`, 
+e.g., $\bmW_3(t_2)$ and $\bmW_4(t_2)$.
+Similar to the scenario when landmark is at $t_1$, the failure time for subject `id = 4` is censored at $t_3 = 3$.
 
 
 The following code modifies the `getDat()` function to accomdiate the administrative censoring induced by 
@@ -131,7 +139,7 @@ getDat <- function(n, cr, land) {
     z <- mvrnorm(n, rep(1, 10), .5^outer(1:10, 1:10, function(x, y) abs(x - y)))
     a <- matrix(runif(10 * n, -1, 1), n)
     b <- matrix(runif(10 * n), n)
-    y <- sapply(1:n, function(x) getY(a[12:16,], b[22:26,], z[6:10,], runif(1)))
+    y <- sapply(1:n, function(x) getY(a[x, 1:5], b[x, 1:5], z[x, 5:9], runif(1)))
     if (land == 1) {
         if (cr == .2) cc <- runif(n, 0, 7.51)
         if (cr == .4) cc <- runif(n, 0, 3.91)
@@ -140,16 +148,18 @@ getDat <- function(n, cr, land) {
         if (cr == .2) cc <- runif(n, 0, 11.35)
         if (cr == .4) cc <- runif(n, 0, 5.68)   
     }
-    out <- data.frame(id = 1:n, Time = pmin(y, cc, 2), delta = 1 * (y <= pmin(cc, 2)),
+    out <- data.frame(id = 1:n, Time = pmin(y, cc, land + 1), delta = 1 * (y <= pmin(cc, 2)),
                       z = z, w1 = a * pweibull(b, 2))
     if (land == 2) out$w2 <- a * pweibull(b * 2, 2) / 2
     out$a <- a
     out$b <- b
     return(subset(out, Time > land))
 }
-set.seed(27); dat <- getDat(400, .2, 1)
-names(dat)
-head(dat$Time)
+set.seed(117); dat1 <- getDat(400, .2, 1)
+set.seed(117); dat2 <- getDat(400, .2, 2)
+names(dat1)
+head(dat1$Time)
+head(dat2$Time)
 ```
 The modified `getDat()` takes three arguments; `n` for sample size, `cr` for censoring rate, 
 and `land` for the fixed landmark time.
@@ -214,20 +224,20 @@ The argument `control` defaults to a list with the following values:
 
 Since the argument `numFold` controls the number of cross-validation in pruning, 
 the fully grown (un-pruned) survival tree can be constructed as follow:
-```{R tree1}
-fit1 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat, select = -c(a, b)), 
+```{R tree1, cache = TRUE}
+fit1 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
                 ensemble = FALSE, trans = TRUE, control = list(numFold = 0))
 fit1
 ```
 A pruned tree can be constructed as follow:
-```{R tree2}
-fit2 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat, select = -c(a, b)), 
+```{R tree2, cache = TRUE}
+fit2 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
                 ensemble = FALSE, trans = TRUE)
 fit2
 ```
 Lastly, turning `ensemble = TRUE` applies the ensemble method:
-```{R tree3}
-fit3 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat, select = -c(a, b)), 
+```{R tree3, cache = TRUE}
+fit3 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
                 ensemble = TRUE, trans = TRUE)
 fit3
 ```
@@ -241,9 +251,29 @@ set.seed(1); datTest <- getDat(500, .2, 1)
 The predicted probability can be obtained by applying the generic function `predict()` to each subjects in the test data.
 ```{R, cache = TRUE}
 system.time(pred1 <- predict(fit1, datTest))
-system.time(pred2 <- predict(fit2, datTest))
+system.time(pred2 <- predict(fit2, datTest)) 
 system.time(pred3 <- predict(fit3, datTest))
 ```
-
-
+We use the following codes to calculate the true survival probability for each subject in the test data.
+```{R}
+trSiFun <- sapply(1:nrow(datTest), function(s) {
+    tmp = datTest[s,]
+    g0 = seq(1e-5, 2, 1e-2)
+    a0 = as.numeric(tmp$a[1:5])
+    b0 = as.numeric(tmp$b[1:5])
+    z0 = as.numeric(tmp$z[1:5])
+    tmpS = unlist(sapply(g0, function(tt) exp(-Hz(tt, a0, b0, z0))))
+    return(function(t2)
+        stepfun(x = g0, y = c(1, tmpS))(t2 + 1) / stepfun(x = g0, y = c(1, tmpS))(1))})
+```
+The error square is 
+```{R, eval = FALSE}
+t0 <- seq(0, quantile(datTest$Time - 1, .9), length.out = 50)
+err1 <- sapply(1:length(pred1), function(x) (pred1[[x]](t0) - trSiFun[[x]](t0))^2)
+err2 <- sapply(1:length(pred1), function(x) (pred2[[x]](t0) - trSiFun[[x]](t0))^2)
+err3 <- sapply(1:length(pred1), function(x) (pred3[[x]](t0) - trSiFun[[x]](t0))^2)
+mean(err1)
+mean(err2)
+mean(err3)
+```
 ## Reference 

@@ -28,7 +28,6 @@ print.dynTree <- function(x, digits = 5, tree = NULL, ...) {
             cat("Sample size:                                       ", ncol(x$xlist[[1]]), "\n")
             cat("Number of independent variables:                   ", length(unique(x$data$.id2)),"\n")
             cat("Number of trees:                                   ", x$control$numTree, "\n")
-            cat("Split rule:                                        ", x$splitBy, "\n")
             cat("Number of variables tried at each split:           ", x$control$mtry, "\n")
             ## cat("Size of subsample:                           ", x$parm@fsz, "\n")
             cat("Number of time points to evaluate CON:             ", x$control$K, "\n")
