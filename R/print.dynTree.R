@@ -23,7 +23,7 @@ print.dynTree <- function(x, digits = 5, tree = NULL, ...) {
             if (tree > length(x$trees)) stop("Tree number exceeded the number of trees in forest.")
             printTree(x$Frame[[tree]], vNames = x$vNames, digits = digits)
         } else {
-            cat("ROC-guided ensembles\n\n")
+            cat("Ensembles\n\n")
             cat("Call:\n", deparse(x$call), "\n\n")
             cat("Sample size:                                       ", ncol(x$xlist[[1]]), "\n")
             cat("Number of independent variables:                   ", length(unique(x$data$.id2)),"\n")
@@ -75,7 +75,7 @@ printTree <- function(Frame, vNames, digits) {
         }
     }
     toPrint <- ToDataFrameTree(root)[[1]]
-    cat(" ROC-guided survival tree\n")
+    cat(" Survival tree\n")
     if (nrow(Frame) > 1) {        
         cat("\n")
         cat(" node), split\n")
