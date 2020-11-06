@@ -21,4 +21,4 @@ devtools::install_github("stc04003/dynTree")
 
 [Online document](http://www.sychiou.com/dyntree/) includes:
 
--   Vignette on [fitting landmark models](https://www.sychiou.com/dynTree/articles/dynTree-sims.html).
+-   Vignette on [fitting landmark models](http://www.sychiou.com/dyntree/articles/dynTree-sims.html).
