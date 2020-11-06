@@ -181,47 +181,10 @@ When the landmark is $t_2 = 2$, longitudinal predictors measured at $t_2$ is sto
 Although not used in fitting the landmark model, variables `a` and `b` will be used to calculate the 
 true survival probability to assess the performance of the proposed landmark model.
 
-## The `dynTree` function
-
-The `dynTree` package can be installed and load with the following commands: 
-```{R, eval = FALSE}
-devtools::install_github("stc04003/dynTree")
-library(dynTree)
-```
+## Fitting `dynTree`
 ```{R, echo = FALSE}
 library(dynTree)
 ```
-The main function in the `dynTree` package is `dynTree()`, with the following arguments
-```{R}
-args(dynTree)
-```
-
-The arguments are as follows
-
-* `formula` is a formula object, with the response on the left of a `~` operator, and the predictors on the right. The response must be a survival object returned by the function `Surv` from the `survival` package. 
-* `data` is an optional data frame to interpret the variables occurring in the `formula`.
-* `id` is an optional vector used to identify the longitudinal observations of subject's id. 
-* `subset` is an optional vector specifying a subset of observations to be used in the fitting process.
-* `ensemble` is an optional logical value. If `TRUE` (default), ensemble methods will be fitted. 
-Otherwise, the survival tree will be fitted.
-* `group` is an optional vector with the length equal to the number of covariates. This vector indicates the covariates to be splitted together in the emsemble method.
-* `trans` indicates whether to perform time-dependent transformation when each row represents an observation. 
-See @sun2019roc for more details about the time-dependent transformation.
-* `control` is a list of control parameters. 
-
-The argument `control` defaults to a list with the following values:
-
-* `tau` is the maximum follow-up time; default value is the 90th percentile of the unique observed survival times. 
-* `maxNode` is the maximum node number allowed to be in the tree; the default value is `500`.
-* `numFold` is the number of folds used in the cross-validation. When `numFold > 0`, the survival tree will be pruned; when `numFold = 0`, the unpruned survival tree will be presented. The default value is `10`.
-* `h` is the smoothing parameter used in the Kernel; the default value is `tau / 20`.
-* `minSplitTerm` is the minimum number of baseline observations in each terminal node; the default value is `15`.
-* `minSplitNode` is the minimum number of baseline observations in each splitable node; the default value is `30`. 
-* `disc` is a logical vector specifying whether the covariates in `formula` are discrete (`TRUE`) or continuous (`FALSE`). The length of `disc` should be the same as the number of covariates in `formula`. When not specified, the `rocTree()` function assumes continuous covariates for all.
-* `K` is the number of time points on which the concordance measure is computed. A less refined time grids (smaller `K`) generally yields faster speed but a very small `K` is not recommended. The default value is 20.
-
-## Fitting `dynTree`
-
 We demonstrate the useage of `dynTree()` with the simulated data, `dat1`.
 Since the prediction is in $t\in[t_k, t_{k + 1}]$, 
 we define `Time2` as the time beyond landmark time. 

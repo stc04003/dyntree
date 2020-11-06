@@ -1,0 +1,74 @@
+---
+title: "Applying landmark analysis on a data from an illness-death model"
+author: Sy Han (Steven) Chiou
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+bibliography: ../inst/bib/dynTree.bib
+vignette: >
+  %\VignetteIndexEntry{Applying landmark analysis on a longitudinal data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}{inputenc}
+---
+
+
+\newcommand{\bmX}{{\mathbf X}}
+\newcommand{\bmW}{{\mathbf W}}
+\newcommand{\bmZ}{{\mathbf Z}}
+
+<script type="text/x-mathjax-config">
+MathJax.Hub.Config({
+  TeX: { equationNumbers: { autoNumber: "AMS" } }
+});
+</script>
+
+```{r default, include = FALSE}
+knitr::opts_chunk$set(prompt = TRUE, comment = "")
+```
+
+In this vignette, we first generate a simulated data from an illness-death model
+then apply landmark analysis with package `dynTree` assming a fixed landmark time. 
+
+## Simulated data
+
+Consider a survival model with 20 predictors, of which 10 are time-independent predictors and 
+the other 10 are longitudinal predictors. 
+Suppose the predictors were generated from the following description:
+
+  - The time-independent predictors $\bmZ = \{Z_1, \ldots, Z_{10}\}$ are generated from a multivariate normal random variable
+with $E(Z_i) = Var(Z_i) = 1$, and $Cov(Z_i, Z_j) = 0.5^{|i - j|}$, for $i, j = 1, \ldots, 10$.
+  - The longitudinal predictors $\bmW(t) = \{W_1(t), \ldots, W_{10}(t)\}$ were generated from $W_i(t) = a_iF(b_it) / t$
+  for $i = 1, \ldots, 10$, where $a_i$ follows a uniform distribution on $[-1, 1]$, $b_i$ follows a standard uniform distribution, and $F(x) = 1 - e^{-x^2}$.
+
+In a illness-death model with three states: healthy, diseased, and death, 
+we assume all patients started in the healthy state and can transit to the death state 
+with or without first transiting to the diseased state. 
+We also assume all states were irreversible,
+so that only the transition paths health$\rightarrow$diseased$\rightarrow$death and health$\rightarrow$death are allowed.
+The diseased state is considered as an intermediate event and
+the longitudinal predictors $\bmW(t)$ are measured at the time of the intermediate event.
+In this scenario, both the fixed landmark time or a random landmark time (intermediate event) can be considered. 
+We generated the falure time $T$ based on the following algorithm. 
+
+
+We first generated an event time, $D$, from the accelerated failure time model, 
+$$\log (D) = -1 + \theta_1 + \gamma + \epsilon_1,$$
+where $\epsilon_1$ is an independent standard normal random variable and the frailty variable $\gamma$
+follows a gamma distribution with mean 1 and variance 0.5.
+Define the disease indicator, $\Pi$, where $\Pi = 1$ if the subject moves from the healthy state to the disease state
+at time $D$, and $\Pi = 0$ if the subject moves from the healthy state to death at time $D$.
+The disease indicator was obtained via the following model
+$$\mbox{logit}\left[P\left\{\Pi = 1 | \bmZ, \bmW(D)\right\}\right] = 1 + \theta_1\bmZ + \theta_2\bmW(D) + \gamma.$$
+Given a subject had developed the disease at time $D$, 
+the residual survival time, $R$, was generated from 
+$$\log(R) = -1 + \theta_1\bmZ + \theta_2\bmW(D) + \theta_1\theta_2\bmZ\bmW(D) - \log(1 + D) + \gamma + \epsilon_2,$$
+where $\epsilon_2$ is a standard normal random variable. 
+When $\Pi = 1$, the time to death is $T = D + R$ and the time to the intermediate event is $U = D$; 
+when $\Pi = 0$, the time to death is $T = D$ and the intermediate event does not occur. 
+
+
+
+## Reference
