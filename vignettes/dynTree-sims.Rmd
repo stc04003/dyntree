@@ -132,7 +132,7 @@ e.g., $\bmW_3(t_2)$ and $\bmW_4(t_2)$.
 Similar to the scenario when landmark is at $t_1$, the failure time for subject `id = 4` is censored at $t_3 = 3$.
 
 
-The following code modifies the `getDat()` function to accomdiate the administrative censoring induced by 
+The following code modifies the above `getDat()` function to accomdiate the administrative censoring induced by 
 $t_{k + 1}$ and an additional independent right-censoring. 
 ```{R, cache = TRUE}
 getDat <- function(n, cr, land) {
@@ -222,37 +222,40 @@ The argument `control` defaults to a list with the following values:
 
 ## Fitting `dynTree`
 
+We demonstrate the useage of `dynTree()` with the simulated data, `dat1`.
+Since the prediction is in $t\in[t_k, t_{k + 1}]$, 
+we define `Time2` as the time beyond landmark time. 
+```{R}
+dat1$Time2 <- dat1$Time - 1
+```
 Since the argument `numFold` controls the number of cross-validation in pruning, 
 the fully grown (un-pruned) survival tree can be constructed as follow:
 ```{R tree1, cache = TRUE}
-fit1 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
-                ensemble = FALSE, trans = TRUE, control = list(numFold = 0))
-fit1
+(fit1 <- dynTree(Surv(Time2, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b, Time)), 
+                 ensemble = FALSE, trans = TRUE, control = list(numFold = 0)))
 ```
 A pruned tree can be constructed as follow:
 ```{R tree2, cache = TRUE}
-fit2 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
-                ensemble = FALSE, trans = TRUE)
-fit2
+(fit2 <- dynTree(Surv(Time2, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b, Time)), 
+                 ensemble = FALSE, trans = TRUE))
 ```
 Lastly, turning `ensemble = TRUE` applies the ensemble method:
 ```{R tree3, cache = TRUE}
-fit3 <- dynTree(Surv(Time, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b)), 
-                ensemble = TRUE, trans = TRUE)
-fit3
+(fit3 <- dynTree(Surv(Time2, delta) ~ ., id = id, data = subset(dat1, select = -c(a, b, Time)), 
+                 ensemble = TRUE, trans = TRUE))
 ```
 
 ## Model performance
 To assess the performance of the proposed methods, we independently generate a test data with `n = 500` under the 
 same setting.
 ```{R}
-set.seed(1); datTest <- getDat(500, .2, 1)
+set.seed(1); datTest <- getDat(500, .2, 1); datTest$Time2 <- datTest$Time - 1
 ```
 The predicted probability can be obtained by applying the generic function `predict()` to each subjects in the test data.
 ```{R, cache = TRUE}
-system.time(pred1 <- predict(fit1, datTest))
-system.time(pred2 <- predict(fit2, datTest)) 
-system.time(pred3 <- predict(fit3, datTest))
+pred1 <- sapply(1:nrow(datTest), function(x) predict(fit1, datTest[x,])$survFun) 
+pred2 <- sapply(1:nrow(datTest), function(x) predict(fit2, datTest[x,])$survFun)
+pred3 <- sapply(1:nrow(datTest), function(x) predict(fit3, datTest[x,])$survFun)
 ```
 We use the following codes to calculate the true survival probability for each subject in the test data.
 ```{R}
@@ -266,9 +269,11 @@ trSiFun <- sapply(1:nrow(datTest), function(s) {
     return(function(t2)
         stepfun(x = g0, y = c(1, tmpS))(t2 + 1) / stepfun(x = g0, y = c(1, tmpS))(1))})
 ```
-The error square is 
-```{R, eval = FALSE}
-t0 <- seq(0, quantile(datTest$Time - 1, .9), length.out = 50)
+One way to assess the performance of the proposed model is to compare the estimated survival with the truth. 
+In the following code, we compare the square of the difference between the predicted probability and true probability 
+at 50 evenly spaced points between 0 and the 90th percentile of the observed failure time in the test data. 
+```{R}
+t0 <- seq(0, quantile(datTest$Time2, .9), length.out = 50)
 err1 <- sapply(1:length(pred1), function(x) (pred1[[x]](t0) - trSiFun[[x]](t0))^2)
 err2 <- sapply(1:length(pred1), function(x) (pred2[[x]](t0) - trSiFun[[x]](t0))^2)
 err3 <- sapply(1:length(pred1), function(x) (pred3[[x]](t0) - trSiFun[[x]](t0))^2)
@@ -276,4 +281,6 @@ mean(err1)
 mean(err2)
 mean(err3)
 ```
+The ensemble method yields the smallest squared error, followed by the pruned tree.
+
 ## Reference 

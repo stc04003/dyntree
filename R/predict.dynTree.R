@@ -56,7 +56,7 @@ predict.dynTree <- function(object, newdata, control = list(), ...) {
     return(object)
 }
 
-is.predict.dynTree <- function(x) inherits(x, "predict.dyntree")
+is.predict.dynTree <- function(x) inherits(x, "predict.dynTree")
 
 #' findInterval with 0 replaced with 1
 #' @keywords internal

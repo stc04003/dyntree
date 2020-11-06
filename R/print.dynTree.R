@@ -91,7 +91,7 @@ printTree <- function(Frame, vNames, digits) {
 #' @param x is an \code{dynTree} object
 #' @noRd
 #' 
-#' @export
+#' @exportS3Method print predict.dynTree
 print.predict.dynTree <- function(x, ...) {
     if (!is.predict.dynTree(x)) stop("Response must be a 'predict.dynTree' object")
     if (names(x$pred)[[2]] == "Survival") {

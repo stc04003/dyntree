@@ -11,7 +11,7 @@ dynTree(
   subset,
   ensemble = TRUE,
   groups = NULL,
-  trans = FALSE,
+  trans = TRUE,
   control = list()
 )
 }
