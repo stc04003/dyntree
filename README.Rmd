@@ -28,6 +28,6 @@ devtools::install_github("stc04003/dynTree")
 ```
 
 ### Online documentation 
-[Online document](https://www.sychiou.com/dynTree/index.html) includes:
+[Online document](http://www.sychiou.com/dyntree/) includes:
 
 * Vignette on [fitting landmark models](https://www.sychiou.com/dynTree/articles/dynTree-sims.html).
