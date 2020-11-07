@@ -203,6 +203,64 @@
 \end{subfigure}
 \end{figure}
 
+\newpage 
+
+\begin{figure}
+\centering
+  \begin{subfigure}[t]{0.45\textwidth}
+    \resizebox{\textwidth}{!}{
+      \begin{tikzpicture}
+        \draw[line width = .5mm, ->] (0, -.5) -- (15, -.5);
+        \draw[pink, line width = .6mm, -*] (0, 4.5) -- (4.5, 4.5);
+        \draw[pink, line width = .6mm, -*] (4.5, 4.5) -- (5.5, 4.5);
+        \draw[red, line width = .6mm, -*] (0, 3) -- (7.5, 3);
+        \draw[red, line width = .6mm, -*] (7.5, 3) -- (9.5, 3);        
+        \draw[red, line width = .6mm, -*] (0, 1.5) -- (10.5, 1.5);       
+        \draw[red, line width = .6mm, -*] (0, 0) -- (12.15, 0);
+        \draw[red, line width = .6mm, dashed] (12.15, 0) -- (14.25, 0);
+        \foreach \y in {0,2,...,12}
+        \draw[line width = .3mm] (\y, -0.075-.5) -- (\y, 0.075-.5);
+        \node[black] at (8, -1) {$a$};
+        \node[black] at (0, -1) {0};
+        \draw[dashed, gray, line width = .28mm] (8, -.5) -- (8, 5.5);
+        	\node[black!60!green] at (0, .4) {\normalsize $\bZ_4$};
+	\node[black!60!green] at (0, 1.9) {\normalsize $\bZ_3$};
+	\node[black!60!green] at (0, 3.4) {\normalsize $\bZ_2$};
+	\node[black!60!green] at (7.5, 3.4) {\normalsize $\bW_2(u_2)$};
+	\end{tikzpicture}}
+	\caption*{Landmark at $a$}
+\end{subfigure}  
+\begin{subfigure}[t]{0.45\textwidth}
+    \resizebox{\textwidth}{!}{
+      \begin{tikzpicture}
+        \draw[line width = .5mm, ->] (0, -.5) -- (15, -.5);
+        \draw[red, line width = .6mm, -*] (0, 4.5) -- (4.5, 4.5);
+        \draw[red, line width = .6mm, -*] (4.5, 4.5) -- (5.5, 4.5);
+        \draw[red, line width = .6mm, -*] (0, 3) -- (7.5, 3);
+        \draw[red, line width = .6mm, -*] (7.5, 3) -- (9.5, 3);        
+        \draw[pink, line width = .6mm, -*] (0, 1.5) -- (10.5, 1.5);       
+        \draw[red, line width = .6mm, -*] (0, 0) -- (12.15, 0);
+        \draw[red, line width = .6mm, -*] (12.15, 0) -- (14.25, 0);
+        \foreach \y in {0,2,...,12}
+        \draw[line width = .3mm] (\y, -0.075-.5) -- (\y, 0.075-.5);
+        \node[black] at (0, -1) {0};
+        \draw[dashed, gray, line width = .28mm] (4.35, -.5) -- (4.35, 5.5);
+        \draw[dashed, gray, line width = .28mm] (7.35, -.5) -- (7.35, 5.5);
+        \draw[dashed, gray, line width = .28mm] (12, -.5) -- (12, 5.5);
+	\node[black] at (4.5, -1) {$u_1$};
+        \node[black] at (7.5, -1) {$u_2$};
+        \node[black] at (12, -1) {$u_4$};
+        	\node[black!60!green] at (7.5, 3.4) {\normalsize $\bW_2(u_2)$};
+        	\node[black!60!green] at (4.5, 4.9) {\normalsize $\bW_1(u_1)$};
+	\node[black!60!green] at (12, 0.4) {\normalsize $\bW_4(u_4)$};
+        	\node[black!60!green] at (0, .4) {\normalsize $\bZ_4$};
+	\node[black!60!green] at (0, 1.9) {\normalsize $\bZ_3$};
+	\node[black!60!green] at (0, 3.4) {\normalsize $\bZ_2$};
+	\node[black!60!green] at (0, 4.9) {\normalsize $\bZ_1$};
+	\end{tikzpicture}}
+	\caption*{Random landmark time}
+\end{subfigure}
+\end{figure}
 
 \end{document}
 
