@@ -44,12 +44,12 @@
 #' @keywords dynTree
 #' @seealso See
 #'
-#' @example inst/examples/ex_dynTree.R
+#' ' @example inst/examples/ex_dynTree.R
 #' @importFrom survival Surv
 #' @importFrom stats aggregate predict stepfun
 dynTree <- function(formula, data, id, subset, ensemble = TRUE,
-                  groups = NULL, trans = TRUE,
-                  control = list()) {
+                    groups = NULL, trans = TRUE,
+                    control = list()) {
     control <- dynTree.control(control)
     Call <- match.call()
     if (missing(formula)) stop("Argument 'formula' is required.")
@@ -113,7 +113,8 @@ dynTree <- function(formula, data, id, subset, ensemble = TRUE,
     } else disc <- control$disc[1:.p]
     cutoff <- (1:control$nc) / (control$nc + 1)
     ## .tk <- quantile(unique(.Y0[.D0 > 0]), 1:control$K / (control$K + 1), names = FALSE)
-    .tk <- .Y0[.D0 > 0]
+    ## .tk <- .Y0[.D0 > 0]
+    if (!trans) .tk <- min(.Y0[.D0 > 0])
     .eps <- unlist(sapply(split(.id2, .id2), function(.x) 1:length(.x)))
     discClass <- rep(list(NULL), length(disc))
     for (i in which(disc)) {
@@ -123,39 +124,29 @@ dynTree <- function(formula, data, id, subset, ensemble = TRUE,
         .X[,i] <- with(discClass[[i]], value[match(.X[,i], level)])
     }    
     if (any(!disc)) {
-        if (trans) .X[order(.Y), !disc] <- apply(.X[, !disc, drop = FALSE], 2, function(.x)
+        .X[order(.Y), !disc] <- apply(.X[, !disc, drop = FALSE], 2, function(.x)
             unlist(lapply(split(.x, .eps), fecdf)))
-        else
-            .X[, !disc] <- apply(.X[.eps == 1, !disc, drop = FALSE], 2, fecdf)[.id2,]
         .X[, !disc] <-
             apply(.X[, !disc, drop = FALSE], 2, function(x) findInterval(x, cutoff)) + 1
     }
-    ## if (any(!disc))
-    ##     .X[order(.Y), !disc] <- apply(.X[, !disc, drop = FALSE], 2, function(.x)
-    ##         unlist(lapply(split(.x, .eps), fecdf)))
-    ## if (any(disc)) 
-    ##     .X[, disc] <- apply(.X[, disc, drop = FALSE], 2, function(.x) .x / max(.x))
-    ## .X <- apply(.X, 2, function(x) findInterval(x, cutoff)) + 1
-    ## .hk <- rep(control$h, length(.tk))
-    ## .hk[.tk < control$h] <- .tk[.tk < control$h]
-    ## if (!trans) .X <- .X[rep(1, nrow(.X)),]
-    ## .mat1f <- t(.D0 * mapply(function(x,h) K2(x, .Y0, h) / h, .tk, .hk))
     .mat1f <- t(.D0 * outer(.Y0, .tk, "=="))
-    ## if (trans) {
-    ## .mat1Z <- .X[.eps == 1,, drop = FALSE]
-    .mat1Z <- .X[cumsum(table(.id2)),, drop = FALSE]
     .mat2k <- make_mat2(.tk, .Y, .id2, .X)
     .zt <- make_mat2_t(.Y0[.D0 == 1], .Y, .id2, .X)
     .range0  <- apply(.X, 2, range)
-    ## } else {
-    ##     .mat1f <- matrix(colSums(.mat1f), 1)
-    ##     .ind2 <- cumsum(table(.id2))
-    ##     .mat1Z <- .X[.eps == 1,, drop = FALSE]
-    ##     .mat2k <- make_mat2(.tk[1], .Y[.ind2], .id2[.ind2], .X[.eps == 1,])
-    ##     .zt <- make_mat2_t(.Y0[.D0 == 1][1], .Y[.ind2], .id2[.ind2], .X[.eps == 1,])
-    ##     .range0 <- apply(.X[.eps == 1,, drop = FALSE], 2, range)
-    ## }
+    .mat1Z <- .X[cumsum(table(.id2)),, drop = FALSE]
     .zy <- t(.mat1Z[.D0 == 1,])
+    if (!trans) {
+        .tk <- min(.Y0[.D0 > 0])
+        .mat1f <- t(.D0)
+        .mat1Z <- .X[.eps == 1,, drop = FALSE]
+        .mat2k <- .mat2k[1]
+        .zt <- .zt[1]
+        .zy <- t(.mat1Z[.D0 == 1,])
+        ## .mat1f <- t(matrix(.D0, length(.D0), nrow(.mat1f)))
+        ## .mat1Z <- .X[.eps == 1,, drop = FALSE]
+        ## .mat2k <- rep(.mat2k[1], length(.mat2k))
+        ## .zt <- rep(.zt[1], length(.zt))
+    }
     if (ensemble) {
         out <- dynforest_C(.mat1f, .mat1Z, .mat2k, .range0, .zt, .zy, .D0, 1, 
                          control$numTree,

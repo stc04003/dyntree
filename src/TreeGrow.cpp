@@ -505,7 +505,7 @@ arma::ivec TreeGrow::find_split_logrank(size_t nd,
     }
     arma::vec fLSum = arma::zeros<arma::vec>(K);
     arma::uvec SLSum = arma::zeros<arma::uvec>(K);
-    arma::vec fRSum = (sum(mat1f.cols(indY),1));  
+    arma::vec fRSum = (sum(mat1f.cols(indY),1));  // row sum
     int j = 0;
     arma::uvec jv = arma::zeros<arma::uvec>(K);
     int nj = indY.size();
