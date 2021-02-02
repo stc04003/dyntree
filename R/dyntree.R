@@ -31,12 +31,8 @@
 #' @param ensemble is an optional logical value.
 #' If \code{TRUE} (default), ensemble methods will be fitted.
 #' Otherwise, the survival tree will be fitted.
-#' @param groups is an optional vector with the length equal to the number of covariates.
-#' This vector indicates the covariates to be splitted together in the emsemble method.
 #' @param control a list of control parameters. See 'details' for important special
 #' features of control parameters.
-#' @param trans indicates whether to perform time-dependent transformation;
-#' only makes sense when all covariates are time-independent.
 #'
 #' @export
 #' @return An object of S4 class "\code{dynTree}" representig the fit, with the following components:
@@ -47,9 +43,7 @@
 #' ' @example inst/examples/ex_dynTree.R
 #' @importFrom survival Surv
 #' @importFrom stats aggregate predict stepfun
-dynTree <- function(formula, data, id, subset, ensemble = TRUE,
-                    groups = NULL, trans = TRUE,
-                    control = list()) {
+dynTree <- function(formula, data, id, subset, ensemble = TRUE, control = list()) {
     control <- dynTree.control(control)
     Call <- match.call()
     if (missing(formula)) stop("Argument 'formula' is required.")
@@ -73,107 +67,38 @@ dynTree <- function(formula, data, id, subset, ensemble = TRUE,
     .Y <- model.response(mf)[,1]
     .D <- model.response(mf)[,2]
     .X <- stats::model.matrix(formula, data = mf)
-    ## if (any(colnames(.X) == "(Intercept)"))
-    ##     .X <- .X[,!(colnames(.X) == "(Intercept)"), drop = FALSE]
     if (length(grep("`|\\(", colnames(.X))) > 0)
         .X <- .X[,-grep("`|\\(", colnames(.X)), drop = FALSE]
     .id <- model.extract(mf, id)
     names(.id) <- names(.Y) <- names(.D) <- rownames(.X) <- NULL
-    if (is.null(.id) | length(.id) == length(unique(.id))) {
-        .id <- 1:length(.Y)
-        .n0 <- length(unique(.id))
-        rk <- rank(.Y, ties.method = "first")
-        .X <- .X[rep(1:.n0, rk),, drop = FALSE]
-        .id <- .id[rep(1:.n0, rk)]
-        .Dtmp <- .D
-        .D <- rep(0, sum(1:.n0))
-        .D[cumsum((1:.n0)[rk])] <- .Dtmp
-        .ind <- unlist(sapply(1:.n0, function(x) 1:x)[rk])
-        .Y <- as.numeric(sort(.Y)[.ind])
-    } 
-    tmp <- aggregate(.Y ~ .id, FUN = max)
-    ord <- unlist(sapply(tmp$.id[order(tmp$.Y)], function(x) which(.id == x)), use.names = F)
-    .id2 <- rep(1:length(unique(.id)), table(.id)[unique(.id[ord])])
     .p <- ncol(.X)
-    if (is.null(groups)) gp <- 1:.p
-    else gp <- rep(1:length(unique(groups)), unlist(lapply(split(groups, groups), length)))
-    .n <- length(unique(.id))
-    .Y <- .Y[ord]
-    .D <- .D[ord]
-    .X0 <- .X <- .X[ord,, drop = FALSE]
-    .Y0 <- .Y[cumsum(table(.id2))]
-    .D0 <- .D[cumsum(table(.id2))]
+    .n <- nrow(.X)
+    ord <- order(.Y)
+    .Y <- .Y0 <- .Y[ord]
+    .D <- .D0 <- .D[ord]
+    .X <- .X0 <- .X[ord,, drop = FALSE]
     if (is.function(control$mtry)) control$mtry <- control$mtry(.p)
     if (is.function(control$tau)) control$tau <- control$tau(.Y0)
     if (is.function(control$h)) control$h <- control$h(control$tau)
-    if (length(control$disc) == 1) {
-        disc <- rep(control$disc, .p)
-        tmp <- as.numeric(which(apply(.X0, 2, function(x) length(unique(x))) <= 3))
-        if (length(tmp) > 0) disc[tmp] <- TRUE
-    } else disc <- control$disc[1:.p]
-    cutoff <- (1:control$nc) / (control$nc + 1)
-    ## .tk <- quantile(unique(.Y0[.D0 > 0]), 1:control$K / (control$K + 1), names = FALSE)
-    ## .tk <- .Y0[.D0 > 0]
-    if (!trans) .tk <- min(.Y0[.D0 > 0])
-    .eps <- unlist(sapply(split(.id2, .id2), function(.x) 1:length(.x)))
-    discClass <- rep(list(NULL), length(disc))
-    for (i in which(disc)) {
-        tmp <- as.factor(unique(.X[,i]))
-        discClass[[i]] <- data.frame(value = sort(unique(c(tmp))),
-                                     level = levels(tmp))
-        .X[,i] <- with(discClass[[i]], value[match(.X[,i], level)])
-    }    
-    if (any(!disc)) {
-        .X[order(.Y), !disc] <- apply(.X[, !disc, drop = FALSE], 2, function(.x)
-            unlist(lapply(split(.x, .eps), fecdf)))
-        .X[, !disc] <-
-            apply(.X[, !disc, drop = FALSE], 2, function(x) findInterval(x, cutoff)) + 1
-    }
-    .mat1f <- t(.D0 * outer(.Y0, .tk, "=="))
-    .mat2k <- make_mat2(.tk, .Y, .id2, .X)
-    .zt <- make_mat2_t(.Y0[.D0 == 1], .Y, .id2, .X)
+    .X[, !disc] <- apply(.X, 2, fecdf)
     .range0  <- apply(.X, 2, range)
-    .mat1Z <- .X[cumsum(table(.id2)),, drop = FALSE]
-    .zy <- t(.mat1Z[.D0 == 1,])
-    if (!trans) {
-        .tk <- min(.Y0[.D0 > 0])
-        .mat1f <- t(.D0)
-        .mat1Z <- .X[.eps == 1,, drop = FALSE]
-        .mat2k <- .mat2k[1]
-        .zt <- .zt[1]
-        .zy <- t(.mat1Z[.D0 == 1,])
-        ## .mat1f <- t(matrix(.D0, length(.D0), nrow(.mat1f)))
-        ## .mat1Z <- .X[.eps == 1,, drop = FALSE]
-        ## .mat2k <- rep(.mat2k[1], length(.mat2k))
-        ## .zt <- rep(.zt[1], length(.zt))
-    }
     if (ensemble) {
-        out <- dynforest_C(.mat1f, .mat1Z, .mat2k, .range0, .zt, .zy, .D0, 1, 
-                         control$numTree,
-                         control$minSplitTerm,
-                         control$minSplitNode,
-                         control$maxNode,
-                         control$mtry, gp)
-        out$Frame <- lapply(out$trees, cleanTreeMat, cutoff = cutoff, .X0 = .X0, disc = disc)
+        out <- dynforest_C(.X, .D, .range0, control$numTree, control$minSplitTerm,
+                         control$minSplitNode, control$maxNode, control$mtry)
+        out$Frame <- lapply(out$trees, cleanTreeMat, cutoff = .Y, .X0 = .X)
     } else {
-        out <- dyntree_C(.mat1f, .mat1Z, .mat2k, .range0, .zt, .zy, .D0, 1, 
-                       control$numFold,
-                       control$minSplitTerm,
-                       control$minSplitNode,
-                       control$maxNode)
-        out$Frame <- cleanTreeMat(out$treeMat, cutoff = cutoff, .X0 = .X0, disc = disc)
+        out <- dyntree_C(.X, .D, .range0, control$numTree, control$minSplitTerm,
+                         control$numFold, control$minSplitTerm,
+                         control$minSplitNode, control$maxNode)
+        out$Frame <- cleanTreeMat(out$treeMat, cutoff = .Y, .X0 = .X)
     }
     out$call <- Call
     ## out$data <- list(.Y = .Y, .D = .D, .X = .X0, .Y0 = .Y0, .D0 = .D0,
     ##                  .X0 = .X0[cumsum(table(.id2)),], .id = .id, .id2 = .id2)
-    tmp <- table(.id2)
-    out$data <- list(.Y0 = .Y0, .D0 = .D0, .X0 = .X0[cumsum(table(.id2)),], .id = unique(.id),
-                     .id2 = as.numeric(names(tmp)), .id2.count = as.numeric(tmp))
+    out$data <- data.frame(.Y0 = .Y0, .D0 = .D0, .X0 = .X0)
     out$rName <- all.vars(formula)[1]
     out$vNames <- attr(mt, "term.labels")
     out$ensemble <- ensemble
-    out$disc <- disc
-    out$trans <- trans
     out$discClass <- discClass
     out$control <- control
     class(out) <- "dynTree"

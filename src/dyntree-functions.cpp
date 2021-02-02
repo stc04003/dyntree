@@ -3,8 +3,6 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 // [[Rcpp::plugins(cpp11)]]
 
-#include "Data.h"
-#include "Data2.h"
 #include "globals.h"
 #include "Tree.h"
 #include "Forest.h"
@@ -19,32 +17,24 @@
 
 //' @noRd
 // [[Rcpp::export]]
-SEXP dynforest_C(const arma::mat& mat1f0,
-	       const arma::umat& mat1Z0,
-	       const arma::field<arma::umat>& mat2Zf0,
-	       const arma::umat& r0,
-	       const arma::field<arma::umat>& zt0,
-	       const arma::umat& zy0,
-	       const arma::uvec& e0,
-	       int spCriterion, // dICON if 1, ICON otherwise
-	       int numTree,
-	       int minNode1,
-	       int minSplit1,
-	       int maxNode,
-	       int mtry,
-	       arma::uvec& gp) {
-  int K = mat1f0.n_rows;
-  int n = mat1Z0.n_rows;
+SEXP dynforest_C(const arma::umat& X0,
+		 const arma::umat& D0,
+		 const arma::umat& r0,
+		 int numTree,
+		 int minNode1,
+		 int minSplit1,
+		 int maxNode,
+		 int mtry) {
+  int n = X0.n_rows;
   std::vector<std::shared_ptr<Tree> > trees;
   trees.reserve(numTree);
-  Forest ff(spCriterion, numTree, maxNode, minNode1, minSplit1, K, mtry, gp);
-  //arma::umat ids(n, numTree);
+  Forest ff(numTree, maxNode, minNode1, minSplit1, mtry);
   arma::umat ids0(n, numTree);
-  //ff.sampleWithoutReplacementSplit(n, n, ids);
   ff.sampleWithReplacementSplit(n, n, ids0);
   // Bootstrapping
   arma::umat id1 = ids0;//ids.rows( arma::regspace<arma::uvec>(0, s-1)  );
-  ff.trainRF(trees, mat1Z0, mat1f0, mat2Zf0, r0, id1, e0);
+  ff.trainRF(trees, X0, D0, r0, id1);
+
   arma::field<arma::umat> treeList(numTree);
   std::vector<std::shared_ptr<Tree> >::const_iterator it;
   int i = 0;
@@ -72,13 +62,13 @@ SEXP dynforest_C(const arma::mat& mat1f0,
 
 // [[Rcpp::export]]
 SEXP predict_dynforest_C(const arma::mat& zraw0,
-		       const arma::vec& y0,
-		       const arma::uvec& e0,
-		       const Rcpp::List& forestobj,
-		       const arma::mat& matX,
-		       const arma::uvec& disc,
-		       const arma::vec& breaks,
-		       const int& trans) {
+			 const arma::vec& y0,
+			 const arma::uvec& e0,
+			 const Rcpp::List& forestobj,
+			 const arma::mat& matX,
+			 const arma::uvec& disc,
+			 const arma::vec& breaks,
+			 const int& trans) {
   arma::umat z0(zraw0.n_rows, arma::sum(e0));
   ForestPrediction::transformZ(zraw0, z0, matX, e0, breaks, disc, trans);
   arma::vec sy = ForestPrediction::getSurvival(z0,
@@ -144,21 +134,16 @@ SEXP predict_dynforest_C(const arma::mat& zraw0,
 //' 
 //' @noRd
 // [[Rcpp::export]]
-SEXP dyntree_C(const arma::mat& mat1f0,
-	       const arma::umat& mat1Z0,
-	       const arma::field<arma::umat>& mat2Zf0,
+SEXP dyntree_C(const arma::umat& X0,
+	       const arma::umat& D0,
 	       const arma::umat& r0,
-	       const arma::field<arma::umat>& zt0,
-	       const arma::umat& zy0,
-	       const arma::uvec& e0,
-	       int spCriterion, // whatever this is, do logrank
 	       int numFold,
 	       int minNode1,
 	       int minSplit1,
 	       int maxNode) {
   int K = mat1f0.n_rows;
-  TreeGrow tg(numFold, K, spCriterion, maxNode, minNode1, minSplit1);
-  std::shared_ptr<Tree> tr2 = tg.trainCV(mat1Z0, mat1f0, mat2Zf0, r0, e0);
+  TreeGrow tg(numFold, maxNode, minNode1, minSplit1);
+  std::shared_ptr<Tree> tr2 = tg.trainCV(X0, r0, D0);
   const arma::uvec& vars0 = tr2->get_split_vars();
   arma::umat treeMat(vars0.n_elem,5);
   treeMat.col(0) = vars0;

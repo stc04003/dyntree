@@ -1,22 +1,17 @@
 #ifndef Forest_h
 #define Forest_h
 
-
-#include "Data.h"
 #include "Tree.h"
 #include <memory>
 
 class Forest {
 public:
-   Forest(uint spc,
-          uint nt,
+   Forest(uint nt,
           uint mn,
           uint min1,
           uint minsp1,
-          uint kk,
-          uint mt,
-	  arma::uvec gp) : spCriterion(spc), NUM_TREE(nt), MAX_NODE(mn),
-    MIN_NODE1(min1), MIN_SPLIT1(minsp1), K(kk), mtry(mt), group(gp){};
+          uint mt) : NUM_TREE(nt), MAX_NODE(mn),
+    MIN_NODE1(min1), MIN_SPLIT1(minsp1), mtry(mt){};
 
    void sampleWithoutReplacementSplit(arma::uword n, arma::uword n1,
                                       arma::umat& ids) {
@@ -35,56 +30,42 @@ public:
 
    // GROW A FOREST
    int trainRF(std::vector<std::shared_ptr<Tree> >& trees,
-               const Data* dat,
-               const arma::umat& ids);
-
-   int trainRF(std::vector<std::shared_ptr<Tree> >& trees,
-               const arma::umat& mat1Z,
-               const arma::mat& mat1f,
-               const arma::field<arma::umat>& mat2Zf,
-               const arma::umat& range0,
+               const arma::umat& D0,
+               const arma::umat& X0,
+               const arma::umat& r0,
                const arma::umat& ids,
                const arma::uvec& e);
 
    // GROW A TREE IN THE FOREST, WITHOUT PRUNING
    std::shared_ptr<Tree> train(const arma::umat& mat1Z,
-                               const arma::mat& mat1f,
-                               const arma::field<arma::umat>& mat2Zf,
                                const arma::umat& range0,
                                const arma::uvec& e) const;
 
    // We need to use fmat and Smat when calculating ICON
    int split_logrank(const arma::umat& mat1Z,
-                  const arma::mat& mat1f,
-                  const arma::field<arma::umat>& mat2Zf, // dat
                   arma::uvec& left_childs,
                   arma::uvec& right_childs,
                   arma::uvec& split_vars,
                   arma::uvec& split_values,
                   arma::uvec& isLeaf,
-                  arma::mat& fmat,
+                  arma::umat& fmat,
                   arma::umat& Smat,
                   // tree
                   arma::ucube& ranges,
                   arma::field<arma::uvec>& nodeSampleY,
-                  arma::field<arma::uvec>& nodeSample,
-		  size_t& countsp,
+        		  size_t& countsp,
                   size_t& ndcount,
                   const arma::uvec& e) const;
 
    arma::ivec find_split_logrank(size_t nd,
-                              const arma::umat& mat1Z,
-                              const arma::mat& mat1f,
-                              const arma::field<arma::umat>& mat2Zf, // dat
-                              const arma::uvec& isLeaf,
-                              const arma::ucube& ranges,
-                              const arma::field<arma::uvec>& nodeSampleY,
-                              const arma::field<arma::uvec>& nodeSample,
-                              arma::mat& fmat,
-                              arma::umat& Smat,
-                              int ndcount,
-                              const arma::uvec& e) const;
-
+				 const arma::umat& mat1Z,
+				 const arma::uvec& isLeaf,
+                                 const arma::ucube& ranges,
+                                 const arma::field<arma::uvec>& nodeSampleY,
+                                 arma::umat& fmat,
+                                 arma::umat& Smat,
+                                 int ndcount,
+                                 const arma::uvec& e) const;
 
 private:
    uint spCriterion;
@@ -92,9 +73,7 @@ private:
    uint MAX_NODE;
    uint MIN_NODE1;
    uint MIN_SPLIT1;
-   uint K;
    uint mtry;
-   arma::uvec group;
 };
 
 #endif /* Forest_h */

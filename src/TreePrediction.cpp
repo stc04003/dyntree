@@ -37,45 +37,6 @@ void TreePrediction::transformZ(const arma::mat& z,
   if (trans == 0) z2 = repmat(z2.col(1), 1, z2.n_cols); 
 }
 
-void TreePrediction::transformZH(const arma::mat& z,  // z on tg
-                                 const arma::vec& tg, //grid of time point
-                                 arma::umat& z2,
-                                 const arma::mat& dat, // dat is predictor matrix
-                                 const arma::vec& y,
-                                 const arma::uvec& e,
-                                 const arma::vec& breaks,
-                                 const arma::uvec& disc)
-{
-  int P = z.n_rows;
-  int n = e.n_elem;
-  int NG = tg.n_elem;
-  arma::vec::const_iterator bb = breaks.begin();
-  arma::vec::const_iterator be = breaks.end();
-  for(int p = 0; p < P; p++) {
-    if(disc(p) == 0) {
-      arma::uvec ind = arma::cumsum(arma::regspace<arma::uvec>(0,n-1));
-      arma::vec zp = dat.col(p);
-      // BE CAREFUL
-      int j = 0;
-      double z2ecdf;
-      for(int i = 0; i < n-1; i++) {
-        if( y(i) <= tg(j) && tg(j) < y(i+1) ) {
-          arma::vec zpref = arma::sort(zp.elem( ind ));
-          z2ecdf = (std::lower_bound(zpref.begin(), zpref.end(), z(p,j) )- zpref.begin())/(n-i+0.0)  ;
-          z2(p,j) = std::distance(bb, std::upper_bound(bb, be, z2ecdf ) ) + 1;
-          j++;
-          if(j == NG) break;
-        }
-        ind = ind + 1;
-        if(ind.n_elem > 0){ ind.shed_row(0);}
-      }
-    } else {
-      arma::rowvec zpp = z.row(p);
-      z2.row(p) = arma::conv_to<arma::urowvec>::from(zpp(arma::find(e == 1)));
-    }
-  }
-}
-
 
 TreePrediction::TreePrediction(const arma::umat& zy,
                                const arma::field<arma::umat>& zt,

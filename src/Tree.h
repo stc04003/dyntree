@@ -3,10 +3,8 @@
 
 #include <vector>
 #include <random>
-//#include <iostream>
-//#include <armadillo>
-
-#include "Data.h"
+#include <RcppArmadillo.h>
+#include <armadillo>
 
 typedef unsigned int uint;
 
@@ -50,14 +48,14 @@ public:
   // isLeafTemp: 1 if the node is terminal, 0 otherwise
   // can be used in splitting based ICON
   static double get_ICONTrain(const arma::uvec& isLeafTemp,
-                              const arma::mat& fmat,
+                              const arma::umat& fmat,
                               const arma::umat& Smat);
 
 
   // iconAll is the ICON value of the trees whose sizes ranging from 1 to numLeaf
   // nodeSetList gives the terminal nodes of these trees
   // The function uses fmat and Smat to modify iconAll and nodeSetList, does not return anything
-  void findOptimalSizekSubtree(arma::mat& fmat,
+  void findOptimalSizekSubtree(arma::umat& fmat,
                                arma::umat& Smat,
                                arma::vec& iconAll,
                                arma::field<arma::uvec>& nodeSetList,

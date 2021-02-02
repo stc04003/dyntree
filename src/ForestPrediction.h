@@ -2,19 +2,12 @@
 #define ForestPrediction_h
 
 
-#include "Data.h"
-#include "Data2.h"
 #include "Tree.h"
 #include "Forest.h"
 #include <memory>
 
 class ForestPrediction {
 public:
-   ForestPrediction(const Data2* dat2,
-                    const arma::umat& ids,
-                    const std::vector<std::shared_ptr<Tree> >& trees,
-                    arma::uword n);
-
    ForestPrediction(const arma::umat& zy,
                     const arma::field<arma::umat>& zt,
                     const arma::umat& ids,
@@ -29,26 +22,12 @@ public:
                           const arma::uvec& disc,
 			  const int& trans);
 
-   static void transformZH(const arma::mat& z,  // z on tg
-                           const arma::vec& tg, //grid of time point
-                           arma::umat& z2,
-                           const arma::mat& dat, // dat is predictor matrix
-                           const arma::vec& y,
-                           const arma::uvec& e,
-                           const arma::vec& breaks,
-                           const arma::uvec& disc);
-
    static void transformZ0(const arma::mat& z,
                            arma::umat& z2,
                            const arma::mat& matX,
                            const arma::uvec& e,
                            const arma::vec& breaks,
                            const arma::uvec& disc);
-
-   arma::vec getSurvival(const arma::umat& zt2,
-                         const Data2* dat2,
-                         const arma::umat& ids,
-                         const std::vector<std::shared_ptr<Tree> >& trees);
 
    static arma::vec getSurvival(const arma::umat& zt2,
                                 const arma::vec& y,
