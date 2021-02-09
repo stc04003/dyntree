@@ -6,8 +6,8 @@ dynforest_C <- function(X0, D0, r0, numTree, minNode1, minSplit1, maxNode, mtry)
     .Call('_dynTree_dynforest_C', PACKAGE = 'dynTree', X0, D0, r0, numTree, minNode1, minSplit1, maxNode, mtry)
 }
 
-predict_dynforest_C <- function(zraw0, y0, e0, forestobj, matX, disc, breaks, trans) {
-    .Call('_dynTree_predict_dynforest_C', PACKAGE = 'dynTree', zraw0, y0, e0, forestobj, matX, disc, breaks, trans)
+predict_dynforest_C <- function(zraw0, y0, e0, forestobj, matX) {
+    .Call('_dynTree_predict_dynforest_C', PACKAGE = 'dynTree', zraw0, y0, e0, forestobj, matX)
 }
 
 #' Main function for tree.
@@ -81,7 +81,7 @@ dyntree_C <- function(X0, D0, r0, numFold, minNode1, minSplit1, maxNode) {
 #'             This gives the boundaries of intervals
 #'
 #' @noRd
-predict_dyntree_C <- function(zraw0, y0, e0, treeobj, matX, disc, breaks, trans) {
-    .Call('_dynTree_predict_dyntree_C', PACKAGE = 'dynTree', zraw0, y0, e0, treeobj, matX, disc, breaks, trans)
+predict_dyntree_C <- function(zraw0, y0, e0, treeobj, matX) {
+    .Call('_dynTree_predict_dyntree_C', PACKAGE = 'dynTree', zraw0, y0, e0, treeobj, matX)
 }
 

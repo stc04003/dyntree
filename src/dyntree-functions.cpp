@@ -18,7 +18,7 @@
 //' @noRd
 // [[Rcpp::export]]
 SEXP dynforest_C(const arma::umat& X0,
-		 const arma::umat& D0,
+		 const arma::uvec& D0,
 		 const arma::umat& r0,
 		 int numTree,
 		 int minNode1,
@@ -33,7 +33,7 @@ SEXP dynforest_C(const arma::umat& X0,
   ff.sampleWithReplacementSplit(n, n, ids0);
   // Bootstrapping
   arma::umat id1 = ids0;//ids.rows( arma::regspace<arma::uvec>(0, s-1)  );
-  ff.trainRF(trees, X0, D0, r0, id1);
+  ff.trainRF(trees, X0, r0, id1, D0);
 
   arma::field<arma::umat> treeList(numTree);
   std::vector<std::shared_ptr<Tree> >::const_iterator it;
@@ -52,7 +52,7 @@ SEXP dynforest_C(const arma::umat& X0,
   // use bootstrap observations
   arma::umat id2 = ids0;
   //ids.rows( arma::regspace<arma::uvec>(0, n-1)  );
-  ForestPrediction fp(zy0, zt0, id2, trees, n);
+  ForestPrediction fp(X0, id2, trees, n);
   return Rcpp::List::create(Rcpp::Named("trees") = treeList,
                             Rcpp::Named("nodeLabel") = fp.get_nodeLabel(),
                             Rcpp::Named("nodeSize") = fp.get_nodeSize(),
@@ -65,12 +65,9 @@ SEXP predict_dynforest_C(const arma::mat& zraw0,
 			 const arma::vec& y0,
 			 const arma::uvec& e0,
 			 const Rcpp::List& forestobj,
-			 const arma::mat& matX,
-			 const arma::uvec& disc,
-			 const arma::vec& breaks,
-			 const int& trans) {
+			 const arma::umat& matX) {
   arma::umat z0(zraw0.n_rows, arma::sum(e0));
-  ForestPrediction::transformZ(zraw0, z0, matX, e0, breaks, disc, trans);
+  ForestPrediction::transformZ(zraw0, z0, matX, e0);
   arma::vec sy = ForestPrediction::getSurvival(z0,
                                                y0,
                                                e0,
@@ -135,13 +132,12 @@ SEXP predict_dynforest_C(const arma::mat& zraw0,
 //' @noRd
 // [[Rcpp::export]]
 SEXP dyntree_C(const arma::umat& X0,
-	       const arma::umat& D0,
+	       const arma::uvec& D0,
 	       const arma::umat& r0,
 	       int numFold,
 	       int minNode1,
 	       int minSplit1,
 	       int maxNode) {
-  int K = mat1f0.n_rows;
   TreeGrow tg(numFold, maxNode, minNode1, minSplit1);
   std::shared_ptr<Tree> tr2 = tg.trainCV(X0, r0, D0);
   const arma::uvec& vars0 = tr2->get_split_vars();
@@ -151,7 +147,7 @@ SEXP dyntree_C(const arma::umat& X0,
   treeMat.col(2) = tr2->get_left_childs();
   treeMat.col(3) = tr2->get_right_childs();
   treeMat.col(4) = tr2->get_isLeaf();
-  TreePrediction tp( zy0, zt0, treeMat.col(0), treeMat.col(1),
+  TreePrediction tp( X0, treeMat.col(0), treeMat.col(1),
 		     treeMat.col(2), treeMat.col(3), treeMat.col(4));
   return Rcpp::List::create(Rcpp::Named("treeMat") = treeMat,
                             Rcpp::Named("nodeLabel") = tp.get_nodeLabel(),
@@ -181,12 +177,9 @@ arma::vec predict_dyntree_C(const arma::mat& zraw0,
 			    const arma::vec& y0,
 			    const arma::uvec& e0,
 			    const Rcpp::List& treeobj,
-			    const arma::mat& matX, 
-			    const arma::uvec& disc,
-			    const arma::vec& breaks,
-			    const int& trans) {
+			    const arma::umat& matX) {
   arma::umat z0(zraw0.n_rows, arma::sum(e0));
-  ForestPrediction::transformZ(zraw0, z0, matX, e0, breaks, disc, trans);
+  ForestPrediction::transformZ(zraw0, z0, matX, e0);
   // Rcpp::Rcout << "3" << std::endl;
   arma::umat nodeSize2 = treeobj[2];
   arma::uvec nodeLabel2 = treeobj[1];

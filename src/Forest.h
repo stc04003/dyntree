@@ -30,7 +30,6 @@ public:
 
    // GROW A FOREST
    int trainRF(std::vector<std::shared_ptr<Tree> >& trees,
-               const arma::umat& D0,
                const arma::umat& X0,
                const arma::umat& r0,
                const arma::umat& ids,

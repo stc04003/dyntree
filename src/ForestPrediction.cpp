@@ -2,6 +2,19 @@
 #include "globals.h"
 #include <algorithm>
 
+void ForestPrediction::transformZ(const arma::mat& z,
+                                  arma::umat& z2,
+                                  const arma::umat& matX,
+                                  const arma::uvec& e)
+{
+  int P = z.n_rows;
+  for(int p = 0; p < P; p++) {
+    arma::rowvec zpp = z.row(p);
+    z2.row(p) = arma::conv_to<arma::urowvec>::from(zpp(arma::find(e == 1)));
+  }
+}
+
+
 // The new version
 arma::vec ForestPrediction::getSurvival(const arma::umat& zt2,
                                         const arma::vec& y,
@@ -58,7 +71,7 @@ arma::vec ForestPrediction::getSurvival(const arma::umat& zt2,
 	if(zY(varsp) > cutsp) {
 	  k = rcs(k);
 	} else {
-            k = lcs(k);
+	  k = lcs(k);
 	}
 	isl = il(k);
       }
@@ -158,13 +171,13 @@ arma::vec ForestPrediction::getHazard(const arma::umat& ztvec,
 
 // The old version
 arma::vec ForestPrediction::getSurvival2(const arma::umat& zt2,
-                                        const arma::vec& y,
-                                        const arma::uvec& e,
-                                        const arma::field<arma::uvec>&& nodeSizeB0,
-                                        const arma::umat&& nodeLabelB0,
-                                        const arma::field<arma::uvec>&& tnd3B0,
-                                        const arma::umat&& ids,
-                                        const arma::field<arma::umat>&& trees)
+					 const arma::vec& y,
+					 const arma::uvec& e,
+					 const arma::field<arma::uvec>&& nodeSizeB0,
+					 const arma::umat&& nodeLabelB0,
+					 const arma::field<arma::uvec>&& tnd3B0,
+					 const arma::umat&& ids,
+					 const arma::field<arma::umat>&& trees)
 {
   arma::uvec e1 = arma::find(e == 1);
   arma::vec y2 = y( e1 );
@@ -214,17 +227,15 @@ arma::vec ForestPrediction::getSurvival2(const arma::umat& zt2,
   return exp(-cumsum(w));
 }
 
-ForestPrediction::ForestPrediction(const arma::umat& zy,
-                                   const arma::field<arma::umat>& zt,
+ForestPrediction::ForestPrediction(const arma::umat& X0,
                                    const arma::umat& ids,
                                    const std::vector<std::shared_ptr<Tree> >& trees,
                                    arma::uword n)
 
 {
-  size_t nT = zt.size();
   uint NUM_TREE = trees.size();
-  arma::umat ndy(NUM_TREE, nT);
-  arma::field<arma::uvec> ndsz(NUM_TREE, nT);
+  arma::umat ndy(NUM_TREE, 1);
+  arma::field<arma::uvec> ndsz(NUM_TREE, 1);
   arma::field<arma::uvec> tnd3B(NUM_TREE);
   std::vector<std::shared_ptr<Tree> >::const_iterator it;
   int i = 0;
@@ -241,8 +252,8 @@ ForestPrediction::ForestPrediction(const arma::umat& zy,
     arma::uvec tnd2 = (arma::find(il == 1));
     arma::uvec tnd3 = arma::zeros<arma::uvec>(il.n_elem);
     tnd3.elem( tnd2 ) = arma::regspace<arma::uvec>(0, nNd-1);
-    for(size_t j = 0; j != nT; j++) {
-      arma::uvec zyj = zy.col( j );
+    for(size_t j = 0; j != 1; j++) {
+      arma::uvec zyj = X0.col( j );
       int isl = 0;
       int varsp = 0;
       size_t cutsp = 0;
@@ -260,9 +271,9 @@ ForestPrediction::ForestPrediction(const arma::umat& zy,
       ndy(i,j) = k;
     }
     arma::uvec idi = ids.col(i);
-    for(arma::uword c=0; c < nT; c++) {
+    for(arma::uword c=0; c < 1; c++) {
       arma::uvec ndszic = arma::zeros<arma::uvec>(nNd);
-      arma::umat m = zt(c);
+      arma::umat m = X0;
       //arma::umat m(zt(c).memptr(), zt(c).n_rows, zt(c).n_cols,false);
       //arma::ivec idc = arma::conv_to<arma::ivec>::from(idi + m.n_cols - n);
       //arma::ivec idcp = idc( find(idc>=0) );

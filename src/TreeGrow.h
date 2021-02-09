@@ -32,11 +32,7 @@ public:
 
   // GROW A TREE ON THE TRAINING SET AND UPDATE FMAT AND SMAT FOR THE VALIDATION SET
   std::shared_ptr<Tree> grow(const arma::umat& mat1Z,
-                             const arma::mat& mat1f,
-                             const arma::field<arma::umat>& mat2Zf,
                              const arma::umat& mat1ZVal,
-                             const arma::mat& mat1fVal,
-                             const arma::field<arma::umat>& mat2ZfVal,
                              const arma::umat& range0,
                              arma::umat& fmat,
                              arma::umat& Smat,
@@ -47,8 +43,6 @@ public:
   // PRUNING BASED ON CV
   arma::vec prune(arma::vec& beta,
                   const arma::umat& mat1Z,
-                  const arma::mat& mat1f,
-                  const arma::field<arma::umat>& mat2Zf,
                   const arma::umat& range0,
                   const arma::uvec& e) const;
 

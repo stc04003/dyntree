@@ -1,20 +1,11 @@
 #ifndef TreePrediction_h
 #define TreePrediction_h
 
-#include "Data2.h"
 
 class TreePrediction {
-public:
+ public:
 
-  TreePrediction(const Data2* dat2,
-                 const arma::uvec& vars,
-                 const arma::uvec& values,
-                 const arma::uvec& lcs,
-                 const arma::uvec& rcs,
-                 const arma::uvec& il);
-
-  TreePrediction(const arma::umat& zy,
-                 const arma::field<arma::umat>& zt,
+  TreePrediction(const arma::umat& X0,
                  const arma::uvec& vars,
                  const arma::uvec& values,
                  const arma::uvec& lcs,
@@ -42,20 +33,8 @@ public:
 
   static void transformZ(const arma::mat& z,
                          arma::umat& z2,
-                         const arma::mat& dat,
-                         const arma::uvec& e,
-                         const arma::vec& breaks,
-                         const arma::uvec& disc, 
-                         const int& trans);
-
-  static void transformZH(const arma::mat& z,  // z on tg, col number is the length of tg
-                          const arma::vec& tg, //grid of time point
-                          arma::umat& z2,
-                          const arma::mat& dat,
-                          const arma::vec& y,
-                          const arma::uvec& e,
-                          const arma::vec& breaks,
-                          const arma::uvec& disc);
+                         const arma::umat& dat,
+                         const arma::uvec& e);
 
   static arma::vec getHazard(const arma::umat& ztvec,
                              const arma::vec& tg,
@@ -82,7 +61,7 @@ public:
     return tnd3;
   };
 
-private:
+ private:
   // We only need Z(t) at uncensored time points, t\in T
   // matrix of node size, each row is a terminal node, each column is a t
 

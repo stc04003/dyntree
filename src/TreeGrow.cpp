@@ -45,11 +45,9 @@ std::shared_ptr<Tree> TreeGrow::trainCV(const arma::umat& X0,
   arma::umat fmat = arma::zeros<arma::umat>(1, MAX_NODE);
   arma::umat Smat = arma::zeros<arma::umat>(1, MAX_NODE);
   std::shared_ptr<Tree> tr = grow(X0, range0, fmat, Smat, e);
-  
-  // Rcpp::Rcout << "3" << std::endl;
   const arma::uvec& isl = tr->get_isLeaf();
   uint numLeaf = arma::sum(isl);
-  if (NUM_FOLD > 1 & numLeaf > 1) {
+  if ((NUM_FOLD > 1) & (numLeaf > 1)) {
     arma::field<arma::uvec> nodeSetList(numLeaf);
     arma::vec iconAll(numLeaf);
     tr->findOptimalSizekSubtree(fmat, Smat, iconAll, nodeSetList, numLeaf);
@@ -59,7 +57,6 @@ std::shared_ptr<Tree> TreeGrow::trainCV(const arma::umat& X0,
     Tree::findBeta(iconAll, beta, sizeTree); 
     arma::vec iconBeta = prune(beta, X0, range0, e);
     uint qo = iconBeta.index_max();
-    // Rcpp::Rcout << "iconBeta" << iconBeta << std::endl;
     // Rcpp::Rcout << "qo" << qo << std::endl;
     arma::uvec nodeSetFinal = nodeSetList(sizeTree(qo)-1);
     tr->cut(nodeSetFinal);
@@ -129,7 +126,6 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& mat1Z,
                                      arma::umat& Smat2,
                                      const arma::uvec& e) const
 {
-  int n = mat1Z.n_rows;
   int P = mat1Z.n_cols;
   arma::ucube ranges = arma::zeros<arma::ucube>(MAX_NODE, P, 2);
   arma::uvec left_childs = arma::zeros<arma::uvec>(MAX_NODE);
@@ -295,7 +291,7 @@ int TreeGrow::split(const arma::umat& X0,
     parents(ndc1) = nd;
     parents(ndc2) = nd;
     arma::uvec nodeSampleYnd = std::move(nodeSampleY(nd));
-    arma::uvec zvarspsub = mat1Z( varsp*mat1Z.n_rows + nodeSampleYnd );
+    arma::uvec zvarspsub = X0( varsp*X0.n_rows + nodeSampleYnd );
     nodeSampleY(ndc1) = nodeSampleYnd( arma::find(zvarspsub <=cutsp) );
     nodeSampleY(ndc2) = nodeSampleYnd( arma::find(zvarspsub >cutsp) );
     ranges.row(ndc1) = ranges.row(nd);
@@ -368,8 +364,8 @@ int TreeGrow::split(const arma::umat& mat1Z,
     arma::uvec zvarspsubVal = mat1ZVal( varsp*mat1ZVal.n_rows + nodeSampleYndVal );
     nodeSampleYVal(ndc1) = nodeSampleYndVal( arma::find(zvarspsubVal <=cutsp) );
     nodeSampleYVal(ndc2) = nodeSampleYndVal( arma::find(zvarspsubVal >cutsp) );
-    fmat2.col(ndc1) = arma::sum( mat1fVal.cols( nodeSampleYVal(ndc1) ), 1);
-    fmat2.col(ndc2) = arma::sum( mat1fVal.cols( nodeSampleYVal(ndc2) ), 1);    
+    fmat2.col(ndc1) = arma::cumsum(e(ndc1));
+    fmat2.col(ndc2) = arma::cumsum(e(ndc2));
     ranges.row(ndc1) = ranges.row(nd);
     ranges.row(ndc2) = ranges.row(nd);
     ranges(ndc2,varsp,0) = cutsp+1;
@@ -386,6 +382,7 @@ int TreeGrow::split(const arma::umat& mat1Z,
   return end;
 }
 
+// Rcpp::Rcout << cutsp << std::endl;  
 arma::ivec TreeGrow::find_split_logrank(size_t nd,
 					const arma::umat& mat1Z,
 					const arma::uvec& isLeaf,
@@ -401,60 +398,70 @@ arma::ivec TreeGrow::find_split_logrank(size_t nd,
   int cutsp = 0;
   double LGmax = 0;
   double LGTemp = 0;
-  arma::mat fmatTerm = fmat.cols(arma::find(isLeaf == 1));
-  arma::umat SmatTerm = Smat.cols(arma::find(isLeaf == 1));
-  // Rcpp::Rcout << "isLeaf:" << isLeaf << std::endl;
   for(int p = 0; p < P; p++) {
-    arma::uvec indY = nodeSampleY(nd)( sort_index( mat1Z(p*n + nodeSampleY(nd)) ));
-    arma::uvec fLSum = arma::zeros<arma::uvec>(n);
-    arma::uvec SLSum = arma::zeros<arma::uvec>(n);
-    arma::uvec fRSum = cumsum(e);
-    arma::uvec SRSum = arma::regspace<arma::uvec>(n,1);
-    int j = 0;
-    arma::uvec jv = arma::zeros<arma::uvec>(1);
+    // arma::uvec indY = nodeSampleY(nd)( sort_index( mat1Z(p*n + nodeSampleY(nd)) ));
+    arma::uvec indY = nodeSampleY(nd);
     int nj = indY.size();
+    arma::uvec fLSum = arma::zeros<arma::uvec>(nj);
+    arma::uvec fRSum = arma::zeros<arma::uvec>(nj);
+    // arma::uvec SLSum = arma::zeros<arma::uvec>(nj);
+    // arma::uvec SRSum = arma::zeros<arma::uvec>(nj);
+    fRSum = e(indY);
+    arma::vec SRSum = arma::regspace<arma::vec>(nj, 1);
+    arma::vec SLSum = arma::zeros<arma::vec>(nj);
     arma::uvec rangeCut = arma::regspace<arma::uvec>(ranges(nd, p, 0), ranges(nd, p, 1));
+    // Rcpp::Rcout << "nj: " << nj << std::endl;
+    // Rcpp::Rcout << "indY: " << indY << std::endl;
     for(auto cu : rangeCut) {
-      while(j < nj) {
+      for (size_t j = 0; j < nj; j++) {
         int indYj = indY(j);
         size_t z = mat1Z(indYj, p);
-        if(z == cu) {
-	  fLSum(indYj) = fLSum(indYj) + e(indYj);
-	  fRSum(indYj) = fRSum(indYj) - e(indYj);
-	  SLSum(indYj) = SLSum(indYj) + 1;
-	  SRSum(indYj) = SRSum(indYj) - 1;
-	  j++;
-        } else {
-          break;
-        }
-      }
-      if((SLSum(0) < MIN_NODE1 || SRSum(0) < MIN_NODE1)) {
+	if(z == cu) {
+	  for (int k = 0; k <= j; k++) {
+	    SLSum(k) = SLSum(k) + 1;
+	    SRSum(k) = SRSum(k) - 1;
+	  }
+	  fLSum(j) = fLSum(j) + fRSum(j);
+	  fRSum(j) = fRSum(j) - fRSum(j);
+	}
+	// Rcpp::Rcout << "j: " << j << std::endl;
+      } // end while
+      // arma::uvec n1 = find(fLSum > 0);
+      // arma::uvec n2 = find(fRSum > 0);
+      // Rcpp::Rcout << "sum(fLSum): " << sum(fLSum) << "fLSum: " << fLSum << std::endl;
+      // Rcpp::Rcout << "fLSum: " << fLSum << "fRSum" << fRSum << std::endl;
+      // Rcpp::Rcout << "SLSum: " << SLSum << "SRSum" << SRSum << std::endl;
+      // if((SLSum(0) < MIN_NODE1 || SRSum(0) < MIN_NODE1)) {
+      if(sum(fLSum) < MIN_NODE1 || sum(fRSum) < MIN_NODE1) {
         LGTemp = 0;
       } else {
 	double w1 = 0;
 	double w2 = 0;
-	arma::uvec vec1 = arma::zeros<arma::uvec>(n);
-	arma::uvec vec2 = arma::zeros<arma::uvec>(n);
+	arma::vec vec1 = arma::zeros<arma::vec>(nj);
+	arma::vec vec2 = arma::zeros<arma::vec>(nj);
 	vec1 = fLSum - (fLSum + fRSum) % SLSum / ( SLSum + SRSum );
-	vec2 = (SLSum + SRSum - 1) % SRSum % SLSum % (fLSum + fRSum) %
-	  (SLSum + SRSum - fLSum - fRSum) /
-	  (SLSum + SRSum) / (SLSum + SRSum);
+	vec2 = SRSum % SLSum % (fLSum + fRSum) % (SLSum + SRSum - fLSum - fRSum) /
+	  (SLSum + SRSum) / (SLSum + SRSum) / (SLSum + SRSum - 1);
 	w1 = arma::sum(vec1.elem(find_finite(vec1)));
 	w2 = arma::sum(vec2.elem(find_finite(vec2)));
-	LGTemp = w1 * w1 / w2;
+	// Rcpp::Rcout << "w1: " << w1 << std::endl;
+	// Rcpp::Rcout << "w2: " << w2 << std::endl;
+        LGTemp = w1 * w1 / w2;
+	// Rcpp::Rcout << "P: " << p << " LGTemp: " << LGTemp << std::endl;
       }
-      // if (LGTemp < 0) Rcpp::Rcout << "LGTemp:" << LGTemp << std::endl;    	
       if (LGTemp > LGmax) {
         LGmax = LGTemp;
         varsp = p;
         cutsp = cu;
-        fmat.col(ndcount + 1) = fLSum;
-        fmat.col(ndcount + 2) = fRSum;
-        Smat.col(ndcount + 1) = SLSum;
-        Smat.col(ndcount + 2) = SRSum;
+	// Rcpp::Rcout << "varsp" << varsp << std::endl;
+	// fmat.col(ndcount + 1) = fLSum;
+	// fmat.col(ndcount + 2) = fRSum;
+	// Smat.col(ndcount + 1) = SLSum;
+	// Smat.col(ndcount + 2) = SRSum;
       }
     }
   }
+  // Rcpp::Rcout << "fmat: " << fmat << std::endl;
   arma::ivec vecsp(3);
   if(varsp == -1) {
     vecsp(0) = 0;

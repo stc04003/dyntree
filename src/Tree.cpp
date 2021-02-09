@@ -68,10 +68,10 @@ void Tree::cut(arma::uvec& nodeTerminal)
 
 // calling "ICON" but it is really calculating based on log-rank
 double Tree::get_ICONTrain(const arma::uvec& isLeafTemp,
-                           const arma::mat& fmat,
+                           const arma::umat& fmat,
                            const arma::umat& Smat)
 {
-  arma::mat fmatTemp = fmat.cols( arma::find(isLeafTemp == 1) );
+  arma::umat fmatTemp = fmat.cols( arma::find(isLeafTemp == 1) );
   arma::umat SmatTemp = Smat.cols( arma::find(isLeafTemp == 1) );
   int numLeafTemp = arma::sum(isLeafTemp == 1);
   uint K = fmat.n_rows;
@@ -100,7 +100,7 @@ double Tree::get_ICONTrain(const arma::uvec& isLeafTemp,
   return arma::sum(icon.elem(find_finite(icon))) / K;
 }
 
-void Tree::findOptimalSizekSubtree(arma::mat& fmat, arma::umat& Smat,
+void Tree::findOptimalSizekSubtree(arma::umat& fmat, arma::umat& Smat,
                                    arma::vec& iconAll, arma::field<arma::uvec>& nodeSetList,
 				   uint numLeaf)
 {

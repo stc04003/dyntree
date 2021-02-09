@@ -80,17 +80,18 @@ dynTree <- function(formula, data, id, subset, ensemble = TRUE, control = list()
     if (is.function(control$mtry)) control$mtry <- control$mtry(.p)
     if (is.function(control$tau)) control$tau <- control$tau(.Y0)
     if (is.function(control$h)) control$h <- control$h(control$tau)
-    .X[, !disc] <- apply(.X, 2, fecdf)
+    .X[order(.Y),] <- apply(.X, 2, fecdf)
+    .X <- apply(.X, 2, function(x) findInterval(x, sort(unique(x))) + 1)
     .range0  <- apply(.X, 2, range)
     if (ensemble) {
         out <- dynforest_C(.X, .D, .range0, control$numTree, control$minSplitTerm,
                          control$minSplitNode, control$maxNode, control$mtry)
-        out$Frame <- lapply(out$trees, cleanTreeMat, cutoff = .Y, .X0 = .X)
+        out$Frame <- lapply(out$trees, cleanTreeMat, .X0 = .X0)
     } else {
-        out <- dyntree_C(.X, .D, .range0, control$numTree, control$minSplitTerm,
+        out <- dyntree_C(.X, .D, .range0,
                          control$numFold, control$minSplitTerm,
                          control$minSplitNode, control$maxNode)
-        out$Frame <- cleanTreeMat(out$treeMat, cutoff = .Y, .X0 = .X)
+        out$Frame <- cleanTreeMat(out$treeMat, .X0 = .X0)
     }
     out$call <- Call
     ## out$data <- list(.Y = .Y, .D = .D, .X = .X0, .Y0 = .Y0, .D0 = .D0,
@@ -99,7 +100,6 @@ dynTree <- function(formula, data, id, subset, ensemble = TRUE, control = list()
     out$rName <- all.vars(formula)[1]
     out$vNames <- attr(mt, "term.labels")
     out$ensemble <- ensemble
-    out$discClass <- discClass
     out$control <- control
     class(out) <- "dynTree"
     return(out)
@@ -112,7 +112,7 @@ dynTree <- function(formula, data, id, subset, ensemble = TRUE, control = list()
 dynTree.control <- function(l) {
     ## default values
     dl <- list(numTree = 500, numFold = 10, minSplitNode = 30, minSplitTerm = 15,
-               maxNode = 500, K = 20, nc = 200, disc = FALSE,
+               maxNode = 500, K = 20, nc = 200, 
                tau = function(x) quantile(x, .9),
                h = function(x) x / 20, 
                mtry = function(x) ceiling(sqrt(x)))
@@ -134,7 +134,7 @@ is.dynTree <- function(x) inherits(x, "dynTree")
 #' Clean the `treeMat` from tree and forests; make it easier to read and compatible with print function
 #' @keywords internal
 #' @noRd
-cleanTreeMat <- function(treeMat, cutoff, .X0, disc) {
+cleanTreeMat <- function(treeMat, .X0) {
     ## prepraing treeMat
     ## Remove 0 rows and redefine child nodes
     ## 0 rows were produced from prunning
@@ -152,13 +152,8 @@ cleanTreeMat <- function(treeMat, cutoff, .X0, disc) {
         rownames(treeMat) <- NULL
     }
     if (nrow(treeMat) > 1) {
-        treeMat$cutVal <- cutoff[ifelse(treeMat$cutOrd > 0, treeMat$cutOrd, NA)]
-        if (sum(treeMat$p %in% which(disc))) {
-            for (i in which(disc)) {
-                ind <- which(treeMat$p == i)
-                treeMat$cutVal[ind] <- as.numeric(levels(as.factor(.X0[,i]))[treeMat$cutOrd[ind]])
-            }
-        }        
+        treeMat$cutVal <-  sapply(1:nrow(treeMat), function(x)
+            ifelse(is.na(x), NA, .X0[treeMat$cutOrd[x], treeMat$p[x]]))
         if (nrow(treeMat) <= 3) {
             treeMat$nd <- 1:3
         } else {

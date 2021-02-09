@@ -5,12 +5,10 @@
 #include "globals.h"
 
 int Forest::trainRF(std::vector<std::shared_ptr<Tree> >& trees,
-		    const arma::umat& D0,
 		    const arma::umat& X0,
 		    const arma::umat& r0,
                     const arma::umat& ids,
 		    const arma::uvec& e) {
-  int n = X0.n_rows;
   for(size_t i = 0; i != NUM_TREE; i++) {
     trees.push_back(train(X0.rows(ids.col(i)), r0, e(ids.col(i))));
   }
@@ -132,44 +130,40 @@ arma::ivec Forest::find_split_logrank(size_t nd,
   int cutsp = 0;
   double LGmax = 0;
   double LGTemp = 0;
-  arma::umat fmatTerm = fmat.cols(arma::find(isLeaf == 1));
-  arma::umat SmatTerm = Smat.cols(arma::find(isLeaf == 1));
   arma::uvec spSet = arma::shuffle( arma::regspace<arma::uvec>(0,P-1) );
   for(auto p : spSet.head(mtry)) {
-    arma::uvec indY = nodeSampleY(nd)( sort_index( mat1Z(p*n + nodeSampleY(nd)) ));
-    arma::uvec fLSum = arma::zeros<arma::uvec>(n);
-    arma::uvec SLSum = arma::zeros<arma::uvec>(n);
-    arma::uvec fRSum = cumsum(e);
-    arma::uvec SRSum = arma::regspace<arma::uvec>(n,1);
-    int j = 0;
-    arma::uvec jv = arma::zeros<arma::uvec>(n);    
+    arma::uvec indY = nodeSampleY(nd);
     int nj = indY.size();
+    arma::uvec fLSum = arma::zeros<arma::uvec>(nj);
+    arma::uvec fRSum = arma::zeros<arma::uvec>(nj);
+    fRSum = e(indY);
+    arma::vec SRSum = arma::regspace<arma::vec>(nj, 1);
+    arma::vec SLSum = arma::zeros<arma::vec>(nj);
     arma::uvec rangeCut = arma::regspace<arma::uvec>(ranges(nd, p, 0), ranges(nd, p, 1));
+
     for(auto cu : rangeCut) {
-      while(j < nj) {
-        int indYj = indY(j);
-        size_t z = mat1Z(indYj, p);
-        if(z == cu) {
-          fLSum(indYj) = fLSum(indYj) + e(indYj);
-	  fRSum(indYj) = fRSum(indYj) - e(indYj);
-	  SLSum(indYj) = SLSum(indYj) + 1;
-	  SRSum(indYj) = SRSum(indYj) - 1;
-          j++;
-        } else {
-          break;
-        }
+      for (size_t j = 0; j < nj; j++) {
+	int indYj = indY(j);
+	size_t z = mat1Z(indYj, p);
+	if(z == cu) {
+	  for (int k = 0; k <= j; k++) {
+	    SLSum(k) = SLSum(k) + 1;
+	    SRSum(k) = SRSum(k) - 1;
+	  }
+	  fLSum(j) = fLSum(j) + fRSum(j);
+	  fRSum(j) = fRSum(j) - fRSum(j);
+	}
       }
-      if( (SLSum(0) < MIN_NODE1 || SRSum(0) < MIN_NODE1) ) {
+      if(sum(fLSum) < MIN_NODE1 || sum(fRSum) < MIN_NODE1) {
         LGTemp = 0;
       } else {
 	double w1 = 0;
 	double w2 = 0;
-	arma::uvec vec1 = arma::zeros<arma::uvec>(n);
-	arma::uvec vec2 = arma::zeros<arma::uvec>(n);
+	arma::vec vec1 = arma::zeros<arma::vec>(nj);
+	arma::vec vec2 = arma::zeros<arma::vec>(nj);
 	vec1 = fLSum - (fLSum + fRSum) % SLSum / ( SLSum + SRSum );
-	vec2 = (SLSum + SRSum - 1) % SRSum % SLSum % (fLSum + fRSum) %
-	  (SLSum + SRSum - fLSum - fRSum) /
-	  (SLSum + SRSum) / (SLSum + SRSum);
+	vec2 = SRSum % SLSum % (fLSum + fRSum) % (SLSum + SRSum - fLSum - fRSum) /
+	  (SLSum + SRSum) / (SLSum + SRSum) / (SLSum + SRSum - 1);
 	w1 = arma::sum(vec1.elem(find_finite(vec1)));
 	w2 = arma::sum(vec2.elem(find_finite(vec2)));
 	LGTemp = w1 * w1 / w2;
@@ -178,10 +172,10 @@ arma::ivec Forest::find_split_logrank(size_t nd,
         LGmax = LGTemp;
         varsp = p;
         cutsp = cu;
-        fmat.col(ndcount + 1) = fLSum;
-        fmat.col(ndcount + 2) = fRSum;
-        Smat.col(ndcount + 1) = SLSum;
-        Smat.col(ndcount + 2) = SRSum;
+        // fmat.col(ndcount + 1) = fLSum;
+        // fmat.col(ndcount + 2) = fRSum;
+        // Smat.col(ndcount + 1) = SLSum;
+        // Smat.col(ndcount + 2) = SRSum;
       }
     }
   }

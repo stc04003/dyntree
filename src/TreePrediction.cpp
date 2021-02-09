@@ -1,54 +1,31 @@
+#include <memory>
+#include <RcppArmadillo.h>
+
 #include "TreePrediction.h"
 #include "globals.h"
 
 void TreePrediction::transformZ(const arma::mat& z,
                                 arma::umat& z2,
-                                const arma::mat& dat,
-                                const arma::uvec& e,
-                                const arma::vec& breaks,
-                                const arma::uvec& disc,
-				const int& trans) {
+                                const arma::umat& dat,
+                                const arma::uvec& e) {
   int P = z.n_rows;
-  int n = e.n_elem;
-  arma::vec::const_iterator bb = breaks.begin();
-  arma::vec::const_iterator be = breaks.end();
   for(int p = 0; p < P; p++) {
-    if(disc(p) == 0) {
-      arma::uvec ind = arma::cumsum(arma::regspace<arma::uvec>(0,n-1));
-      arma::vec zp = dat.col(p);
-      // BE CAREFUL
-      int j = 0;
-      double z2ecdf;
-      for(int i = 0; i < n; i++) {
-        if(e(i) == 1) {
-          arma::vec zpref = arma::sort(zp.elem( ind ));
-          z2ecdf = (std::lower_bound(zpref.begin(), zpref.end(), z(p,i) )- zpref.begin())/(n-i+0.0)  ;
-          z2(p,j) = std::distance(bb, std::upper_bound(bb, be, z2ecdf)) + 1;
-          j++;
-        }
-        ind = ind + 1;
-        if(ind.n_elem > 0){ ind.shed_row(0);}
-      }
-    } else {
-      arma::rowvec zpp = z.row(p);
-      z2.row(p) = arma::conv_to<arma::urowvec>::from(zpp(arma::find(e == 1)));
-    }
+    arma::rowvec zpp = z.row(p);
+    z2.row(p) = arma::conv_to<arma::urowvec>::from(zpp(arma::find(e == 1)));
   }
-  if (trans == 0) z2 = repmat(z2.col(1), 1, z2.n_cols); 
 }
 
 
-TreePrediction::TreePrediction(const arma::umat& zy,
-                               const arma::field<arma::umat>& zt,
+TreePrediction::TreePrediction(const arma::umat& X0,
                                const arma::uvec& vars,
 			       const arma::uvec& values,
 			       const arma::uvec& lcs,
 			       const arma::uvec& rcs,
 			       const arma::uvec& il)
 {
-  arma::uvec ndy(zy.n_cols);
-  for(size_t it = 0; it != zy.n_cols; it++) {
-    arma::uvec zyi = (zy.col(it));
+  arma::uvec ndy(X0.n_cols);
+  for(size_t it = 0; it != X0.n_cols; it++) {
+    arma::uvec zyi = (X0.col(it));
     int isl = 0;
     int varsp = 0;
     size_t cutsp = 0;
@@ -65,7 +42,7 @@ TreePrediction::TreePrediction(const arma::umat& zy,
     }
     ndy(it) = k;
   }
-  size_t nT = zt.size();
+  size_t nT = 1;
   //arma::field<arma::uvec> ndst(nT);
   int nNd = arma::accu(il);
   //Rcpp::Rcout << arma::find(il == 1);
@@ -76,7 +53,7 @@ TreePrediction::TreePrediction(const arma::umat& zy,
   arma::uvec tnd3 = arma::zeros<arma::uvec>(il.n_elem);
   tnd3( tnd2 ) = arma::regspace<arma::uvec>(0, nNd-1);
   for(arma::uword c=0; c < nT; c++) {
-    arma::umat m = zt(c);
+    arma::umat m = X0;
     int it_end = m.n_cols;
     arma::uvec ndt(it_end);
     for(int it = 0; it != it_end; it++) {
@@ -238,67 +215,67 @@ arma::vec TreePrediction::getHazard(const arma::umat& ztvec,
   return hz;
 }
 
-TreePrediction::TreePrediction(const Data2* dat2,
-                               const arma::uvec& vars,
-			       const arma::uvec& values,
-			       const arma::uvec& lcs,
-			       const arma::uvec& rcs,
-			       const arma::uvec& il)
-{
-  arma::umat zy = dat2->get_zy();
-  arma::field<arma::umat> zt = dat2->get_zt();
-  arma::uvec ndy(zy.n_cols);
-  for(size_t it = 0; it != zy.n_cols; it++) {
-    arma::uvec zyi = zy.col(it);
-    int isl = 0;
-    int varsp = 0;
-    size_t cutsp = 0;
-    int k = 0;
-    while(isl == 0) {
-      varsp = vars(k);
-      cutsp = values(k);
-      if(zyi(varsp) > cutsp) {
-        k = rcs(k);
-      } else {
-        k = lcs(k);
-      }
-      isl = il(k);
-    }
-    ndy(it) = k;
-  }
-  size_t nT = zt.size();
-  //arma::field<arma::uvec> ndst(nT);
-  int nNd = arma::accu(il);
-  arma::uvec tnd = arma::regspace<arma::uvec>(0, il.n_elem-1);
-  arma::uvec tnd2 = tnd(arma::find(il == 1));
-  arma::umat ndsz = arma::zeros<arma::umat>(nNd, nT);
-  arma::uvec tnd3 = arma::zeros<arma::uvec>(il.n_elem);
-  tnd3.elem( tnd2 ) = arma::regspace<arma::uvec>(0, nNd-1);
-  for(arma::uword c=0; c < nT; c++) {
-    arma::umat m = zt(c);
-    int it_end = m.n_cols;
-    arma::uvec ndt(it_end);
-    for(int it = 0; it != it_end; it++) {
-      arma::uvec zti = (m.col(it));
-      int isl = 0;
-      int varsp = 0;
-      size_t cutsp = 0;
-      int k = 0;
-      while(isl == 0) {
-        varsp = vars(k);
-        cutsp = values(k);
-        if(zti(varsp) > cutsp) {
-          k = rcs(k);
-        } else {
-          k = lcs(k);
-        }
-        isl = il(k);
-      }
-      ndt(it) = k;
-      ndsz(tnd3(k),c)++;
-    }
-  }
-  this->nodeLabel = ndy;
-  this->nodeSize = ndsz;
-  this->tnd3 = tnd3;
-}
+// TreePrediction::TreePrediction(const Data2* dat2,
+//                                const arma::uvec& vars,
+// 			       const arma::uvec& values,
+// 			       const arma::uvec& lcs,
+// 			       const arma::uvec& rcs,
+// 			       const arma::uvec& il)
+// {
+//   arma::umat zy = dat2->get_zy();
+//   arma::field<arma::umat> zt = dat2->get_zt();
+//   arma::uvec ndy(zy.n_cols);
+//   for(size_t it = 0; it != zy.n_cols; it++) {
+//     arma::uvec zyi = zy.col(it);
+//     int isl = 0;
+//     int varsp = 0;
+//     size_t cutsp = 0;
+//     int k = 0;
+//     while(isl == 0) {
+//       varsp = vars(k);
+//       cutsp = values(k);
+//       if(zyi(varsp) > cutsp) {
+//         k = rcs(k);
+//       } else {
+//         k = lcs(k);
+//       }
+//       isl = il(k);
+//     }
+//     ndy(it) = k;
+//   }
+//   size_t nT = zt.size();
+//   //arma::field<arma::uvec> ndst(nT);
+//   int nNd = arma::accu(il);
+//   arma::uvec tnd = arma::regspace<arma::uvec>(0, il.n_elem-1);
+//   arma::uvec tnd2 = tnd(arma::find(il == 1));
+//   arma::umat ndsz = arma::zeros<arma::umat>(nNd, nT);
+//   arma::uvec tnd3 = arma::zeros<arma::uvec>(il.n_elem);
+//   tnd3.elem( tnd2 ) = arma::regspace<arma::uvec>(0, nNd-1);
+//   for(arma::uword c=0; c < nT; c++) {
+//     arma::umat m = zt(c);
+//     int it_end = m.n_cols;
+//     arma::uvec ndt(it_end);
+//     for(int it = 0; it != it_end; it++) {
+//       arma::uvec zti = (m.col(it));
+//       int isl = 0;
+//       int varsp = 0;
+//       size_t cutsp = 0;
+//       int k = 0;
+//       while(isl == 0) {
+//         varsp = vars(k);
+//         cutsp = values(k);
+//         if(zti(varsp) > cutsp) {
+//           k = rcs(k);
+//         } else {
+//           k = lcs(k);
+//         }
+//         isl = il(k);
+//       }
+//       ndt(it) = k;
+//       ndsz(tnd3(k),c)++;
+//     }
+//   }
+//   this->nodeLabel = ndy;
+//   this->nodeSize = ndsz;
+//   this->tnd3 = tnd3;
+// }

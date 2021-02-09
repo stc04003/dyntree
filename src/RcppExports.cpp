@@ -7,13 +7,13 @@
 using namespace Rcpp;
 
 // dynforest_C
-SEXP dynforest_C(const arma::umat& X0, const arma::umat& D0, const arma::umat& r0, int numTree, int minNode1, int minSplit1, int maxNode, int mtry);
+SEXP dynforest_C(const arma::umat& X0, const arma::uvec& D0, const arma::umat& r0, int numTree, int minNode1, int minSplit1, int maxNode, int mtry);
 RcppExport SEXP _dynTree_dynforest_C(SEXP X0SEXP, SEXP D0SEXP, SEXP r0SEXP, SEXP numTreeSEXP, SEXP minNode1SEXP, SEXP minSplit1SEXP, SEXP maxNodeSEXP, SEXP mtrySEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::umat& >::type X0(X0SEXP);
-    Rcpp::traits::input_parameter< const arma::umat& >::type D0(D0SEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type D0(D0SEXP);
     Rcpp::traits::input_parameter< const arma::umat& >::type r0(r0SEXP);
     Rcpp::traits::input_parameter< int >::type numTree(numTreeSEXP);
     Rcpp::traits::input_parameter< int >::type minNode1(minNode1SEXP);
@@ -25,8 +25,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // predict_dynforest_C
-SEXP predict_dynforest_C(const arma::mat& zraw0, const arma::vec& y0, const arma::uvec& e0, const Rcpp::List& forestobj, const arma::mat& matX, const arma::uvec& disc, const arma::vec& breaks, const int& trans);
-RcppExport SEXP _dynTree_predict_dynforest_C(SEXP zraw0SEXP, SEXP y0SEXP, SEXP e0SEXP, SEXP forestobjSEXP, SEXP matXSEXP, SEXP discSEXP, SEXP breaksSEXP, SEXP transSEXP) {
+SEXP predict_dynforest_C(const arma::mat& zraw0, const arma::vec& y0, const arma::uvec& e0, const Rcpp::List& forestobj, const arma::umat& matX);
+RcppExport SEXP _dynTree_predict_dynforest_C(SEXP zraw0SEXP, SEXP y0SEXP, SEXP e0SEXP, SEXP forestobjSEXP, SEXP matXSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -34,22 +34,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type y0(y0SEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type e0(e0SEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type forestobj(forestobjSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type matX(matXSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type disc(discSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type breaks(breaksSEXP);
-    Rcpp::traits::input_parameter< const int& >::type trans(transSEXP);
-    rcpp_result_gen = Rcpp::wrap(predict_dynforest_C(zraw0, y0, e0, forestobj, matX, disc, breaks, trans));
+    Rcpp::traits::input_parameter< const arma::umat& >::type matX(matXSEXP);
+    rcpp_result_gen = Rcpp::wrap(predict_dynforest_C(zraw0, y0, e0, forestobj, matX));
     return rcpp_result_gen;
 END_RCPP
 }
 // dyntree_C
-SEXP dyntree_C(const arma::umat& X0, const arma::umat& D0, const arma::umat& r0, int numFold, int minNode1, int minSplit1, int maxNode);
+SEXP dyntree_C(const arma::umat& X0, const arma::uvec& D0, const arma::umat& r0, int numFold, int minNode1, int minSplit1, int maxNode);
 RcppExport SEXP _dynTree_dyntree_C(SEXP X0SEXP, SEXP D0SEXP, SEXP r0SEXP, SEXP numFoldSEXP, SEXP minNode1SEXP, SEXP minSplit1SEXP, SEXP maxNodeSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const arma::umat& >::type X0(X0SEXP);
-    Rcpp::traits::input_parameter< const arma::umat& >::type D0(D0SEXP);
+    Rcpp::traits::input_parameter< const arma::uvec& >::type D0(D0SEXP);
     Rcpp::traits::input_parameter< const arma::umat& >::type r0(r0SEXP);
     Rcpp::traits::input_parameter< int >::type numFold(numFoldSEXP);
     Rcpp::traits::input_parameter< int >::type minNode1(minNode1SEXP);
@@ -60,8 +57,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // predict_dyntree_C
-arma::vec predict_dyntree_C(const arma::mat& zraw0, const arma::vec& y0, const arma::uvec& e0, const Rcpp::List& treeobj, const arma::mat& matX, const arma::uvec& disc, const arma::vec& breaks, const int& trans);
-RcppExport SEXP _dynTree_predict_dyntree_C(SEXP zraw0SEXP, SEXP y0SEXP, SEXP e0SEXP, SEXP treeobjSEXP, SEXP matXSEXP, SEXP discSEXP, SEXP breaksSEXP, SEXP transSEXP) {
+arma::vec predict_dyntree_C(const arma::mat& zraw0, const arma::vec& y0, const arma::uvec& e0, const Rcpp::List& treeobj, const arma::umat& matX);
+RcppExport SEXP _dynTree_predict_dyntree_C(SEXP zraw0SEXP, SEXP y0SEXP, SEXP e0SEXP, SEXP treeobjSEXP, SEXP matXSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -69,20 +66,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type y0(y0SEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type e0(e0SEXP);
     Rcpp::traits::input_parameter< const Rcpp::List& >::type treeobj(treeobjSEXP);
-    Rcpp::traits::input_parameter< const arma::mat& >::type matX(matXSEXP);
-    Rcpp::traits::input_parameter< const arma::uvec& >::type disc(discSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type breaks(breaksSEXP);
-    Rcpp::traits::input_parameter< const int& >::type trans(transSEXP);
-    rcpp_result_gen = Rcpp::wrap(predict_dyntree_C(zraw0, y0, e0, treeobj, matX, disc, breaks, trans));
+    Rcpp::traits::input_parameter< const arma::umat& >::type matX(matXSEXP);
+    rcpp_result_gen = Rcpp::wrap(predict_dyntree_C(zraw0, y0, e0, treeobj, matX));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
     {"_dynTree_dynforest_C", (DL_FUNC) &_dynTree_dynforest_C, 8},
-    {"_dynTree_predict_dynforest_C", (DL_FUNC) &_dynTree_predict_dynforest_C, 8},
+    {"_dynTree_predict_dynforest_C", (DL_FUNC) &_dynTree_predict_dynforest_C, 5},
     {"_dynTree_dyntree_C", (DL_FUNC) &_dynTree_dyntree_C, 7},
-    {"_dynTree_predict_dyntree_C", (DL_FUNC) &_dynTree_predict_dyntree_C, 8},
+    {"_dynTree_predict_dyntree_C", (DL_FUNC) &_dynTree_predict_dyntree_C, 5},
     {NULL, NULL, 0}
 };
 

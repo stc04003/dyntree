@@ -40,14 +40,12 @@ predict.dynTree <- function(object, newdata, control = list(), ...) {
         raw[,i] <- with(object$discClass[[i]], value[match(raw[,i], level)])
         ## .X[,i] <- with(object$discClass[[i]], value[match(.X[,i], level)])
     }    
-    if (!object$trans) object$nodeSize <- object$nodeSize[, rep(1, sum(object$data$.D))]
+    ## if (!object$trans) object$nodeSize <- object$nodeSize[, rep(1, sum(object$data$.D))]
     if (object$ensemble) {
-        if (!object$trans) object$nodeLabel <- object$nodeLabel[, rep(1, sum(object$data$.D))]
-        pred <- predict_dynforest_C(t(raw), object$data$.Y0, object$data$.D0, object,
-                                  .X, object$disc, cutoff, 1 * object$trans)
+        ## if (!object$trans) object$nodeLabel <- object$nodeLabel[, rep(1, sum(object$data$.D))]
+        pred <- predict_dynforest_C(t(raw), object$data$.Y0, object$data$.D0, object, .X)
     } else
-        pred <- predict_dyntree_C(t(raw), object$data$.Y0, object$data$.D0, object,
-                                .X, object$disc, cutoff, 1 * object$trans)
+        pred <- predict_dyntree_C(t(raw), object$data$.Y0, object$data$.D0, object, .X)
     object$survFun <- stepfun(object$data$.Y0, c(1, pred))
     object$pred <- data.frame(Time = unlist(newdata[,object$rName]),
                               Survival = object$survFun(unlist(newdata[,object$rName])))
