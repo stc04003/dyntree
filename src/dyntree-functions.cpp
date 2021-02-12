@@ -141,14 +141,22 @@ SEXP dyntree_C(const arma::umat& X0,
   TreeGrow tg(numFold, maxNode, minNode1, minSplit1);
   std::shared_ptr<Tree> tr2 = tg.trainCV(X0, r0, D0);
   const arma::uvec& vars0 = tr2->get_split_vars();
-  arma::umat treeMat(vars0.n_elem,5);
-  treeMat.col(0) = vars0;
-  treeMat.col(1) = tr2->get_split_values();
-  treeMat.col(2) = tr2->get_left_childs();
-  treeMat.col(3) = tr2->get_right_childs();
-  treeMat.col(4) = tr2->get_isLeaf();
-  TreePrediction tp( X0, treeMat.col(0), treeMat.col(1),
-		     treeMat.col(2), treeMat.col(3), treeMat.col(4));
+  arma::mat treeMat(vars0.n_elem, 6);
+  arma::uvec tM1;
+  arma::uvec tM2;
+  arma::uvec tM3;
+  arma::uvec tM4;  
+  tM1 = tr2->get_split_values();
+  tM2 = tr2->get_left_childs();
+  tM3 = tr2->get_right_childs();
+  tM4 = tr2->get_isLeaf();
+  treeMat.col(0) = arma::conv_to<arma::vec>::from(vars0);
+  treeMat.col(1) = arma::conv_to<arma::vec>::from(tM1);
+  treeMat.col(2) = arma::conv_to<arma::vec>::from(tM2);
+  treeMat.col(3) = arma::conv_to<arma::vec>::from(tM3);
+  treeMat.col(4) = arma::conv_to<arma::vec>::from(tM4);
+  treeMat.col(5) = tr2->get_lr_score();
+  TreePrediction tp( X0, vars0, tM1, tM2, tM3, tM4 );
   return Rcpp::List::create(Rcpp::Named("treeMat") = treeMat,
                             Rcpp::Named("nodeLabel") = tp.get_nodeLabel(),
                             Rcpp::Named("nodeSize") = tp.get_nodeSize(),

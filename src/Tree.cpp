@@ -31,6 +31,16 @@ const arma::uvec& Tree::get_parents() const
   return parents;
 }
 
+const arma::vec& Tree::get_lr_score() const
+{
+  return lr_score;
+}
+
+const arma::vec& Tree::get_lr_score2() const
+{
+  return lr_score2;
+}
+
 void Tree::setzero(uint i, uint ndcount) {
   uint lid = left_childs(i);
   uint rid = right_childs(i);
@@ -65,6 +75,19 @@ void Tree::cut(arma::uvec& nodeTerminal)
   split_vars = split_vars(nonEmpty);
   isLeaf = isLeaf2(nonEmpty);
 }
+
+double Tree::get_LRTrain(const arma::uvec& isLeafTemp,
+                           const arma::vec& lr)
+{
+  arma::vec lrTemp = lr( arma::find(isLeafTemp == 1) );
+  int numLeafTemp = arma::sum(isLeafTemp == 1);
+  double lrSum = 0;
+  for(int i = 0; i < numLeafTemp; i++) {
+    lrSum = lrSum + lrTemp(i);
+  }
+  return lrSum;
+}
+
 
 // calling "ICON" but it is really calculating based on log-rank
 double Tree::get_ICONTrain(const arma::uvec& isLeafTemp,
@@ -143,17 +166,59 @@ void Tree::findOptimalSizekSubtree(arma::umat& fmat, arma::umat& Smat,
   nodeSetList(i) = nodeID(arma::find(isLeaf == 1) );
 }
 
-void Tree::findBeta(arma::vec& iconAll, arma::vec& beta, arma::uvec& sizeTree)
+
+void Tree::giveNode(arma::vec& lrAll, arma::vec lrs,
+		    arma::field<arma::uvec>& nodeSetList, uint numLeaf)
 {
-  arma::vec alpha(iconAll.n_elem);
-  int L = iconAll.n_elem;
+  arma::uvec nodeID = arma::regspace<arma::uvec>(0, isLeaf.n_elem-1);
+  arma::uvec isLeafTemp = arma::zeros<arma::uvec>(isLeaf.n_elem);
+  isLeafTemp(0) = 1;
+
+  // Rcpp::Rcout << "lrAll-before" << lrAll << std::endl;
+    
+  lrAll(0) = get_LRTrain(isLeafTemp, lrs);
+  nodeSetList(0) = nodeID(arma::find(isLeafTemp == 1) );
+  arma::uvec isLeafTemp2 = isLeafTemp;
+  arma::uvec isLeafTemp3 = isLeafTemp;
+  size_t i = 1;
+  while(i < numLeaf - 1) {
+    isLeafTemp2 = isLeafTemp;
+    isLeafTemp3 = isLeafTemp;
+    arma::uvec nodeTermTemp = nodeID(arma::find(isLeafTemp == 1) );
+    for(size_t l = 0; l < nodeTermTemp.n_elem; l++ ) {
+      int spNd = nodeTermTemp(l);
+      if(isLeaf(spNd) == 0) {
+        isLeafTemp2 = isLeafTemp3;
+        int lid = left_childs(spNd);
+        int rid = right_childs(spNd);
+        isLeafTemp2(spNd) = 0;
+        isLeafTemp2(lid) = 1;
+        isLeafTemp2(rid) = 1;
+	lrAll(i) = get_LRTrain(isLeafTemp2, lrs);
+	nodeSetList(i) = nodeID(arma::find(isLeafTemp2 == 1) );
+	isLeafTemp = isLeafTemp2;
+      }
+    }
+    i++;
+  }
+  // Rcpp::Rcout << "lrs: " << lrs << std::endl;
+  // Rcpp::Rcout << "lrAll-after: " << lrAll << std::endl;
+  lrAll(i) = get_LRTrain(isLeaf, lrs);
+  nodeSetList(i) = nodeID(arma::find(isLeaf == 1) );
+}
+
+
+void Tree::findBeta(arma::vec& lrAll, arma::vec& beta, arma::uvec& sizeTree)
+{
+  arma::vec alpha(lrAll.n_elem);
+  int L = lrAll.n_elem;
   size_t q = 1;
   alpha(0) = 0;
   sizeTree(0) = L;
   while( L > 1 ) {
-    arma::vec iconSmallerTree = iconAll.head( L-1 );
+    arma::vec lrSmallerTree = lrAll.head( L-1 );
     arma::vec LL = arma::regspace(L - 1, 1);
-    arma::vec alphaTT = (iconAll(L-1) - iconSmallerTree) / LL;
+    arma::vec alphaTT = (lrAll(L-1) - lrSmallerTree) / LL;
     // Rcpp::Rcout << "alphaTT" << std::endl;
     // Rcpp::Rcout << alphaTT << std::endl; 
     alpha(q) = alphaTT.min();
@@ -161,10 +226,10 @@ void Tree::findBeta(arma::vec& iconAll, arma::vec& beta, arma::uvec& sizeTree)
     L = sizeTree(q);
     q++;
   }
-  if(q < iconAll.n_elem) {
-    sizeTree.shed_rows(q, iconAll.n_elem-1);
-    alpha.shed_rows(q, iconAll.n_elem-1);
-    beta.shed_rows(q, iconAll.n_elem-1);
+  if(q < lrAll.n_elem) {
+    sizeTree.shed_rows(q, lrAll.n_elem-1);
+    alpha.shed_rows(q, lrAll.n_elem-1);
+    beta.shed_rows(q, lrAll.n_elem-1);
   }
   for(size_t i = 0; i < alpha.n_elem; i++) {
     if(i < alpha.n_elem - 1) {

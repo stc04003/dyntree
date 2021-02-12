@@ -16,8 +16,10 @@ public:
        arma::uvec&& svars,
        arma::uvec&& svals,
        arma::uvec&& isl,
-       arma::uvec&& pr) : left_childs(lc), right_childs(rc),
-       split_vars(svars), split_values(svals), isLeaf(isl), parents(pr) { };
+       arma::uvec&& pr,
+       arma::vec&& ls,
+       arma::vec&& ls2) : left_childs(lc), right_childs(rc),
+    split_vars(svars), split_values(svals), isLeaf(isl), parents(pr), lr_score(ls), lr_score2(ls2){ };
 
   Tree(arma::uvec&& lc,
        arma::uvec&& rc,
@@ -36,7 +38,9 @@ public:
   const arma::uvec& get_isLeaf() const;
   const arma::uvec& get_parents() const;
   const arma::uvec& get_split_vars() const;
-
+  const arma::vec& get_lr_score() const;
+  const arma::vec& get_lr_score2() const;
+  
   // cut the current large tree to be a smaller tree whose terminal node set is given
   void cut(arma::uvec& nodeTerminal);
   // set the descendant nodes to zero/null
@@ -51,6 +55,8 @@ public:
                               const arma::umat& fmat,
                               const arma::umat& Smat);
 
+  static double get_LRTrain(const arma::uvec& isLeafTemp,
+			    const arma::vec& lr);
 
   // iconAll is the ICON value of the trees whose sizes ranging from 1 to numLeaf
   // nodeSetList gives the terminal nodes of these trees
@@ -60,6 +66,11 @@ public:
                                arma::vec& iconAll,
                                arma::field<arma::uvec>& nodeSetList,
                                uint numLeaf);
+
+  void giveNode(arma::vec& lrAll,
+		arma::vec lrs,
+		arma::field<arma::uvec>& nodeSetList,
+		uint numLeaf);
 
   // find a sequence of beta as the tuning grid for CV
   // based on the sequence of optimal size k subtrees
@@ -76,6 +87,8 @@ private:
   arma::uvec split_values;
   arma::uvec isLeaf;
   arma::uvec parents;
+  arma::vec lr_score;
+  arma::vec lr_score2;
 };
 
 #endif /* Tree_h */

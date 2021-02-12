@@ -12,8 +12,6 @@ double TreeGrow::get_ICONTest(const arma::uvec& isLeafTemp,
   arma::uvec leafTemp = arma::find(isLeafTemp==1);
   int numLeafTemp = leafTemp.n_elem;
   arma::vec icon = arma::zeros<arma::vec>(1);
-  arma::vec fSum = arma::zeros<arma::vec>(1);
-  arma::vec SSum = arma::zeros<arma::vec>(1);
   double w1 = 0;
   double w2 = 0;
   for(int i = 0; i < numLeafTemp; i++) {
@@ -46,18 +44,27 @@ std::shared_ptr<Tree> TreeGrow::trainCV(const arma::umat& X0,
   arma::umat Smat = arma::zeros<arma::umat>(1, MAX_NODE);
   std::shared_ptr<Tree> tr = grow(X0, range0, fmat, Smat, e);
   const arma::uvec& isl = tr->get_isLeaf();
+  const arma::vec& lrs = tr->get_lr_score2();
   uint numLeaf = arma::sum(isl);
   if ((NUM_FOLD > 1) & (numLeaf > 1)) {
     arma::field<arma::uvec> nodeSetList(numLeaf);
-    arma::vec iconAll(numLeaf);
-    tr->findOptimalSizekSubtree(fmat, Smat, iconAll, nodeSetList, numLeaf);
-    // Initialization
-    arma::uvec sizeTree = arma::regspace<arma::uvec>(1,iconAll.n_elem);
-    arma::vec beta(iconAll.n_elem);
-    Tree::findBeta(iconAll, beta, sizeTree); 
-    arma::vec iconBeta = prune(beta, X0, range0, e);
-    uint qo = iconBeta.index_max();
-    // Rcpp::Rcout << "qo" << qo << std::endl;
+    arma::vec lrAll(numLeaf);
+    // Rcpp::Rcout << "lrs:" << lrs << std::endl;
+    tr->giveNode(lrAll, lrs, nodeSetList, numLeaf);
+    // Rcpp::Rcout << "lrAll-after-2:" << lrAll << std::endl;
+    
+    arma::uvec sizeTree = arma::regspace<arma::uvec>(1,lrAll.n_elem);
+    arma::vec beta(lrAll.n_elem);
+
+    // Rcpp::Rcout << "beta-before" << beta << std::endl;
+    Tree::findBeta(lrAll, beta, sizeTree);
+
+    // Rcpp::Rcout << "beta-after" << beta << std::endl;
+    arma::vec lrBeta = prune(beta, X0, range0, e);
+    
+    // Rcpp::Rcout << "lrBeta" << lrBeta << std::endl;
+    uint qo = lrBeta.index_max();
+    Rcpp::Rcout << "qo" << qo << std::endl;
     arma::uvec nodeSetFinal = nodeSetList(sizeTree(qo)-1);
     tr->cut(nodeSetFinal);
   }
@@ -79,6 +86,8 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& X0,
   arma::uvec split_values = arma::zeros<arma::uvec>(MAX_NODE);
   arma::uvec isLeaf = arma::zeros<arma::uvec>(MAX_NODE);
   arma::uvec parents = arma::zeros<arma::uvec>(MAX_NODE);
+  arma::vec lr_score = arma::zeros<arma::vec>(MAX_NODE);
+  arma::vec lr_score2 = arma::zeros<arma::vec>(MAX_NODE);
   ranges.row(0) = range0.t();
   arma::field<arma::uvec> nodeSampleY(MAX_NODE);
   nodeSampleY(0) = arma::regspace<arma::uvec>(0, n-1);
@@ -88,7 +97,7 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& X0,
   while(end == 0) {
     end = split(X0, left_childs, right_childs,
                 split_vars, split_values, isLeaf,
-                parents, fmat, Smat, 
+                parents, fmat, Smat, lr_score, lr_score2, 
                 ranges, nodeSampleY, 
                 countsp, ndcount, e);
     if(ndcount >= MAX_NODE - 2) {
@@ -102,7 +111,9 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& X0,
                                     split_vars(nonEmpty),
                                     split_values(nonEmpty),
                                     isLeaf(nonEmpty),
-                                    parents(nonEmpty)  ));
+                                    parents(nonEmpty),
+				    lr_score(nonEmpty),
+				    lr_score2(nonEmpty)));
   if( ndcount + 1 <=  MAX_NODE-1 ) {
     arma::uvec Empty = arma::regspace<arma::uvec>(ndcount+1, MAX_NODE-1);
     fmat.shed_cols(Empty);
@@ -126,6 +137,7 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& mat1Z,
                                      arma::umat& Smat2,
                                      const arma::uvec& e) const
 {
+  int n = mat1Z.n_rows;
   int P = mat1Z.n_cols;
   arma::ucube ranges = arma::zeros<arma::ucube>(MAX_NODE, P, 2);
   arma::uvec left_childs = arma::zeros<arma::uvec>(MAX_NODE);
@@ -134,8 +146,11 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& mat1Z,
   arma::uvec split_values = arma::zeros<arma::uvec>(MAX_NODE);
   arma::uvec isLeaf = arma::zeros<arma::uvec>(MAX_NODE);
   arma::uvec parents = arma::zeros<arma::uvec>(MAX_NODE);
+  arma::vec lr_score = arma::zeros<arma::vec>(MAX_NODE);
+  arma::vec lr_score2 = arma::zeros<arma::vec>(MAX_NODE);
   ranges.row(0) = range0.t();
   arma::field<arma::uvec> nodeSampleY(MAX_NODE);
+  nodeSampleY(0) = arma::regspace<arma::uvec>(0, n-1);
   int nVal = mat1ZVal.n_rows;
   arma::field<arma::uvec> nodeSampleYVal(MAX_NODE);
   nodeSampleYVal(0) = arma::regspace<arma::uvec>(0, nVal-1);
@@ -143,11 +158,12 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& mat1Z,
   size_t countsp = 0;
   int end = 0;
   while(end == 0) {
-    end = split(mat1Z,mat1ZVal,
+    end = split(mat1Z, mat1ZVal,
                 left_childs, right_childs,
                 split_vars, split_values, isLeaf,
                 parents, fmat, Smat, fmat2, Smat2, 
-                ranges, nodeSampleY, nodeSampleYVal,
+                lr_score, lr_score2,
+		ranges, nodeSampleY, nodeSampleYVal,
                 countsp, ndcount, e);
     if(ndcount >= MAX_NODE - 2) {
       isLeaf( arma::find(left_childs == 0) ).ones();
@@ -160,7 +176,9 @@ std::shared_ptr<Tree> TreeGrow::grow(const arma::umat& mat1Z,
                                     split_vars(nonEmpty),
                                     split_values(nonEmpty),
                                     isLeaf(nonEmpty),
-                                    parents(nonEmpty)  ));
+                                    parents(nonEmpty),
+				    lr_score(nonEmpty),
+				    lr_score2(nonEmpty)));
   if( ndcount + 1 <=  MAX_NODE-1 ) {
     arma::uvec Empty = arma::regspace<arma::uvec>(ndcount+1, MAX_NODE-1);
     fmat.shed_cols(Empty);
@@ -204,7 +222,7 @@ arma::vec TreeGrow::prune(arma::vec& beta,
     remainder--;
   }
   // create folds end
-  arma::mat iconVal(beta.n_elem, NUM_FOLD);
+  arma::mat lrVal(beta.n_elem, NUM_FOLD);
   for(size_t l = 0; l != NUM_FOLD; l++) {
     // get training/validation set
     arma::uvec valid = s(arma::regspace<arma::uvec>(foldstart(l), foldend(l)));
@@ -224,26 +242,40 @@ arma::vec TreeGrow::prune(arma::vec& beta,
     arma::umat fmat2 = arma::zeros<arma::umat>(1, MAX_NODE);
     arma::umat Smat2 = arma::zeros<arma::umat>(1, MAX_NODE);
     TreeGrow tg(MAX_NODE, MIN_NODE1, MIN_SPLIT1);
+
     std::shared_ptr<Tree> trl = tg.grow(mat1Z.rows( trainid ),
                                         mat1Z.rows( valid ),
                                         range0, fmat, Smat, fmat2, Smat2, e(trainid));
-    const arma::uvec& il = trl->get_isLeaf();
+    const arma::uvec& il = trl-> get_isLeaf();  
+    const arma::vec& lrsl = trl-> get_lr_score2();
+
     uint numLeaf = arma::sum(il);
     arma::field<arma::uvec> nodeSetList(numLeaf);
-    arma::vec iconAll(numLeaf);
+    arma::vec lrAll = lrsl(arma::find(il == 1));
+    
     if (numLeaf > 1) 
-      trl->findOptimalSizekSubtree(fmat, Smat, iconAll, nodeSetList, numLeaf);
-    arma::vec sizeTree = arma::regspace<arma::vec>(1,iconAll.n_elem);
+      trl->giveNode(lrAll, lrsl, nodeSetList, numLeaf);
+
+    // Rcpp::Rcout << "lrAll: " << lrAll << std::endl; //
+    
+    arma::vec sizeTree = arma::regspace<arma::vec>(1,lrAll.n_elem);
     arma::uvec isLeafTemp(il.n_elem);
+
+    // Rcpp::Rcout << "lrAll: " << lrAll << std::endl; // 
+    // Rcpp::Rcout << "beta: " << beta << std::endl; // 
     for(size_t j = 0; j < beta.n_elem; j++) {
-      arma::vec iconbetajAll = iconAll -  beta(j) * arma::pow(sizeTree,1);
-      uint opt = iconbetajAll.index_max();
+      arma::vec lrbetajAll = lrAll -  beta(j) * arma::pow(sizeTree,1);
+      uint opt = lrbetajAll.index_max();
       isLeafTemp.zeros();
       isLeafTemp( nodeSetList(opt) ).ones();
-      iconVal(j, l) = TreeGrow::get_ICONTest(isLeafTemp, fmat, Smat, fmat2, Smat2);
+      // Rcpp::Rcout << "isLeafTemp: " << isLeafTemp << std::endl; //
+      // Rcpp::Rcout << "lrAll: " << lrAll << std::endl; //
+      Rcpp::Rcout << "lrbetajAll: " << lrbetajAll << std::endl; //
+      lrVal(j, l) = Tree::get_LRTrain(isLeafTemp, lrsl);
+      // TreeGrow::get_LRTest(isLeafTemp, fmat, Smat, fmat2, Smat2);
     }
   }
-  return arma::sum(iconVal, 1)/NUM_FOLD;
+  return arma::sum(lrVal, 1)/NUM_FOLD;
 }
 
 
@@ -257,7 +289,9 @@ int TreeGrow::split(const arma::umat& X0,
                     arma::uvec& parents,
                     arma::umat& fmat,
                     arma::umat& Smat,// tree
-                    arma::ucube& ranges,
+		    arma::vec& lr_score,
+		    arma::vec& lr_score2,
+		    arma::ucube& ranges,
                     arma::field<arma::uvec>& nodeSampleY,
                     size_t& countsp,
                     size_t& ndcount,
@@ -265,14 +299,15 @@ int TreeGrow::split(const arma::umat& X0,
   int end = 0;
   int varsp = -1;
   int cutsp = 0;
+  double LGmax;
   size_t nd = countsp;
   while(varsp == -1 && countsp <= ndcount) {
     nd = countsp;
-    arma::ivec bestSp(3);
-    bestSp = find_split_logrank(nd, X0, isLeaf, 
-                                ranges, nodeSampleY, fmat, Smat, ndcount, e);
+    Rcpp::List bestSp = find_split_logrank(nd, X0, isLeaf, ranges, nodeSampleY,
+					   fmat, Smat, ndcount, e);
     varsp = bestSp(1);
     cutsp = bestSp(2);
+    LGmax = bestSp(3);
     if(varsp == -1) {
       isLeaf(nd) = 1;
       while(countsp <= ndcount) {
@@ -284,8 +319,12 @@ int TreeGrow::split(const arma::umat& X0,
   if(varsp != -1) {
     split_vars(nd) = varsp;
     split_values(nd) = cutsp;
+    lr_score(nd) = LGmax;
     arma::uword ndc1 = ndcount + 1;
     arma::uword ndc2 = ndcount + 2;
+    lr_score2(nd) = LGmax;
+    lr_score2(ndc1) = LGmax;
+    lr_score2(ndc2) = LGmax;
     left_childs(nd) = ndc1;
     right_childs(nd) = ndc2;
     parents(ndc1) = nd;
@@ -306,6 +345,8 @@ int TreeGrow::split(const arma::umat& X0,
   } else {
     end = 1;
   }
+  // Rcpp::Rcout << "lr_score: " << lr_score << std::endl;
+  // Rcpp::Rcout << "lr_score2: " << lr_score2 << std::endl;
   return end;
 }
 
@@ -321,6 +362,8 @@ int TreeGrow::split(const arma::umat& mat1Z,
                     arma::umat& Smat,
                     arma::umat& fmat2,
                     arma::umat& Smat2,// tree
+		    arma::vec& lr_score,
+                    arma::vec& lr_score2,
                     arma::ucube& ranges,
                     arma::field<arma::uvec>& nodeSampleY,
                     arma::field<arma::uvec>& nodeSampleYVal,
@@ -330,14 +373,23 @@ int TreeGrow::split(const arma::umat& mat1Z,
   int end = 0;
   int varsp = -1;
   int cutsp = 0;
+  double LGmax;
   size_t nd = countsp;
   while(varsp == -1 && countsp <= ndcount) {
     nd = countsp;
-    arma::ivec bestSp(3);
-    bestSp = find_split_logrank(nd, mat1Z, isLeaf, ranges, nodeSampleY, 
+    // arma::ivec bestSp(3);
+
+    // Rcpp::Rcout << "isLeaf: " << isLeaf << std::endl;
+    // Rcpp::Rcout << "nodeSampleY: " << nodeSampleY << std::endl;
+      
+    Rcpp::List bestSp = find_split_logrank(nd, mat1Z, isLeaf, ranges, nodeSampleY, 
 				fmat, Smat, ndcount, e);
     varsp = bestSp(1);
     cutsp = bestSp(2);
+    LGmax = bestSp(3);
+
+    // Rcpp::Rcout << "varsp: " << varsp << "cutsp: " << cutsp << std::endl;
+    
     if(varsp == -1) {
       isLeaf(nd) = 1;
       while(countsp <= ndcount) {
@@ -350,8 +402,10 @@ int TreeGrow::split(const arma::umat& mat1Z,
   if(varsp != -1) {
     split_vars(nd) = varsp;
     split_values(nd) = cutsp;
+    lr_score(nd) = LGmax;
     arma::uword ndc1 = ndcount + 1;
     arma::uword ndc2 = ndcount + 2;
+    
     left_childs(nd) = ndc1;
     right_childs(nd) = ndc2;
     parents(ndc1) = nd;
@@ -364,6 +418,12 @@ int TreeGrow::split(const arma::umat& mat1Z,
     arma::uvec zvarspsubVal = mat1ZVal( varsp*mat1ZVal.n_rows + nodeSampleYndVal );
     nodeSampleYVal(ndc1) = nodeSampleYndVal( arma::find(zvarspsubVal <=cutsp) );
     nodeSampleYVal(ndc2) = nodeSampleYndVal( arma::find(zvarspsubVal >cutsp) );
+
+    lr_score2(nd) = LGmax * nodeSampleYVal(nd).n_elem;
+    lr_score2(ndc1) = LGmax * nodeSampleYVal(ndc1).n_elem;
+    lr_score2(ndc2) = LGmax * nodeSampleYVal(ndc2).n_elem;
+
+    
     fmat2.col(ndc1) = arma::cumsum(e(ndc1));
     fmat2.col(ndc2) = arma::cumsum(e(ndc2));
     ranges.row(ndc1) = ranges.row(nd);
@@ -383,7 +443,8 @@ int TreeGrow::split(const arma::umat& mat1Z,
 }
 
 // Rcpp::Rcout << cutsp << std::endl;  
-arma::ivec TreeGrow::find_split_logrank(size_t nd,
+// arma::ivec
+Rcpp::List TreeGrow::find_split_logrank(size_t nd,
 					const arma::umat& mat1Z,
 					const arma::uvec& isLeaf,
 					arma::ucube& ranges,
@@ -462,15 +523,18 @@ arma::ivec TreeGrow::find_split_logrank(size_t nd,
     }
   }
   // Rcpp::Rcout << "fmat: " << fmat << std::endl;
-  arma::ivec vecsp(3);
+  // arma::ivec vecsp(4);
+  // arma::ivec vecsp(3);
   if(varsp == -1) {
-    vecsp(0) = 0;
-    vecsp(1) = -1;
-    vecsp(2) = 0;
+    return Rcpp::List::create(0, -1, 0, 0);
+    // vecsp(0) = 0;
+    // vecsp(1) = -1;
+    // vecsp(2) = 0;
   } else {
-    vecsp(0) = 1;
-    vecsp(1) = varsp;
-    vecsp(2) = cutsp;
+    return Rcpp::List::create(1, varsp, cutsp, LGmax);
+    // vecsp(0) = 1;
+    // vecsp(1) = varsp;
+    // vecsp(2) = cutsp;
   }
-  return vecsp;
+  // return vecsp;
 }

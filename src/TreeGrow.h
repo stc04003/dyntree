@@ -58,6 +58,8 @@ public:
             arma::uvec& parents,
             arma::umat& fmat,
             arma::umat& Smat,
+	    arma::vec& lr_score,
+	    arma::vec& lr_score2,
             // tree
             arma::ucube& ranges,
             arma::field<arma::uvec>& nodeSampleY,
@@ -78,6 +80,8 @@ public:
             arma::umat& Smat,
             arma::umat& fmat2,
             arma::umat& Smat2,// tree
+	    arma::vec& lr_score,
+	    arma::vec& lr_score2,
             arma::ucube& ranges,
             arma::field<arma::uvec>& nodeSampleY,
             arma::field<arma::uvec>& nodeSampleYVal,
@@ -86,7 +90,8 @@ public:
             const arma::uvec& e) const;
  
   // logrank
-  arma::ivec find_split_logrank(size_t nd,
+  // arma::ivec
+  Rcpp::List find_split_logrank(size_t nd,
 				const arma::umat& mat1Z,
 				const arma::uvec& isLeaf,
 				arma::ucube& ranges,
@@ -95,7 +100,7 @@ public:
 				arma::umat& Smat,
 				size_t ndcount,
 				const arma::uvec& e) const;
-
+  
 private:
   // control
   uint NUM_FOLD;
